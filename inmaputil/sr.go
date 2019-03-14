@@ -152,9 +152,15 @@ func SRPredict(EmissionUnits, SROutputFile, OutputFile string, EmissionsShapefil
 		PNH4, PNO3, PSO4, SOA, PrimaryPM25, TotalPM25 float64
 	}
 
-	o, err := shp.NewEncoder(OutputFile, rec{})
+	var upload uploader
+
+	o, err := shp.NewEncoder(upload.maybeUpload(OutputFile), rec{})
 	if err != nil {
 		return err
+	}
+
+	if upload.err != nil {
+		return upload.err
 	}
 
 	g := r.Geometry()
@@ -187,6 +193,10 @@ func SRPredict(EmissionUnits, SROutputFile, OutputFile string, EmissionsShapefil
 	}
 	fmt.Fprint(f, proj4)
 	f.Close()
+
+	if err := upload.uploadOutput(nil); err != nil {
+		return err
+	}
 
 	return nil
 }
