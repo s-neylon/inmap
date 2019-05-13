@@ -20,8 +20,10 @@ package inmap
 
 import (
 	"fmt"
+	"io"
 	"math"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strconv"
@@ -30,6 +32,7 @@ import (
 	"github.com/ctessum/cdf"
 	"github.com/ctessum/sparse"
 
+	"github.com/chai2010/tiff"
 	"github.com/ctessum/geom"
 	"github.com/ctessum/geom/encoding/shp"
 	"github.com/ctessum/geom/index/rtree"
@@ -788,10 +791,114 @@ type mortality struct {
 	MortData []float64 // Deaths per 100,000 people per year
 }
 
-// loadPopulation loads population information from a shapefile, converting it
+// loadPopulation loads population information from a shapefile or geotiff file,
+// converting it to spatial reference sr. The function outputs an index
+// holding the population information and a map giving the array index
+// of each population type.
+func (config *VarGridConfig) loadPopulation(sr *proj.SR) (*rtree.Rtree, map[string]int, error) {
+	switch filepath.Ext(config.CensusFile) {
+	case ".shp":
+		return config.loadPopulationSHP(sr)
+	case ".tif", ".tiff", ".geotif", ".geotiff":
+		return config.loadPopulationGeoTIFF(sr)
+	default:
+		return nil, nil, fmt.Errorf("inmap: valid population file type `%s`; valid types are `shp, tif, tiff, geotif, and geotiff`", filepath.Ext(config.CensusFile))
+	}
+}
+
+// loadPopulationGeoTIFF loads population information from a shapefile, converting it
 // to spatial reference sr. The function outputs an index holding the population
 // information and a map giving the array index of each population type.
-func (config *VarGridConfig) loadPopulation(sr *proj.SR) (*rtree.Rtree, map[string]int, error) {
+func (config *VarGridConfig) loadPopulationGeoTIFF(sr *proj.SR) (*rtree.Rtree, map[string]int, error) {
+	f, err := os.Open(config.CensusFile)
+	if err != nil {
+		return nil, nil, fmt.Errorf("inmap: opening population GeoTIFF file: %v", err)
+	}
+	defer f.Close()
+	p, err := tiff.OpenReader(f)
+	if err != nil {
+		return nil, nil, fmt.Errorf("inmap: decoding population GeoTIFF file: %v", err)
+	}
+
+	if p.ImageNum() < len(config.CensusPopColumns) {
+		return nil, nil, fmt.Errorf("inmap: number of images GeoTIFF population file (%d) is less than number of CensusPopColumns (%d)", p.ImageNum(), len(config.CensusPopColumns))
+	}
+
+	for i := 0; i < len(config.CensusPopColumns); i++ {
+		ifd := p.Ifd[i][0]
+		fmt.Println("xxxxxxxxxxxxxxxxx image type", ifd.ImageType())
+		ifc, err := ifd.ImageConfig()
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("xxxxxxxxxxxxxxxxx image config", ifc)
+		for x, y := range ifd.EntryMap {
+			fmt.Println(x, y)
+		}
+		fmt.Println("Compression", ifd.Compression(), "depth", ifd.Depth())
+
+		// Adapted from tiff/tiff_ifd_block.go
+		bounds := ifd.BlockBounds(i, 0)
+		offset := ifd.BlockOffset(i, 0)
+		count := ifd.BlockCount(i, 0)
+
+		if _, err = f.Seek(offset, 0); err != nil {
+			return nil, nil, err
+		}
+		limitReader := io.LimitReader(f, count)
+
+		var data []byte
+		if data, err = ifd.Compression().Decode(limitReader, bounds.Dx(), bounds.Dy()); err != nil {
+			return nil, nil, err
+		}
+
+		predictor, ok := ifd.TagGetter().GetPredictor()
+		if ok && predictor == tiff.TagValue_PredictorType_Horizontal {
+			return nil, nil, fmt.Errorf("inmap: unsupported population GeoTIFF image predictor %v", predictor)
+		}
+
+		if ifd.ImageType() != tiff.ImageType_Gray {
+			return nil, nil, fmt.Errorf("inmap: invalid population GeoTIFF image type %v, must be `Gray`", ifd.ImageType())
+		}
+		if ifd.Depth() != 32 {
+			return nil, nil, fmt.Errorf("inmap: invalid population GeoTIFF depth %v, must be 32", ifd.Depth())
+		}
+
+		m, err := p.DecodeImage(i, 0)
+		if err != nil {
+			return nil, nil, fmt.Errorf("inmap: decoding population GeoTIFF file image %d: %v", i, err)
+		}
+
+		v := make([]float32, (bounds.Max.X-bounds.Min.X)*(bounds.Max.Y-bounds.Min.Y))
+
+		var min, max = math.Inf(1), math.Inf(-1)
+
+		bpp := uint(ifd.Depth())
+		bitReader := newBitsReader(data)
+		//max := uint32((1 << uint(ifd.Depth())) - 1)
+		for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+			for x := bounds.Min.X; x < bounds.Max.X; x++ {
+				v, ok := bitReader.ReadBits(bpp)
+				if !ok {
+					err = fmt.Errorf("inmap: tiff: IFD.decodeBlock, not enough pixel data")
+					return nil, nil, err
+				}
+				//v = v * 0xff / max
+				min = math.Min(min, v)
+				max = math.Max(max, v)
+			}
+			bitReader.flushBits()
+		}
+
+		fmt.Println("xxxxxxxxxxxxxxxxxxxxxxxxxxxx", min, max)
+	}
+	return nil, nil, nil
+}
+
+// loadPopulationSHP loads population information from a shapefile, converting it
+// to spatial reference sr. The function outputs an index holding the population
+// information and a map giving the array index of each population type.
+func (config *VarGridConfig) loadPopulationSHP(sr *proj.SR) (*rtree.Rtree, map[string]int, error) {
 	var err error
 	popshp, err := shp.NewDecoder(config.CensusFile)
 	if err != nil {

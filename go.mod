@@ -7,6 +7,7 @@ require (
 	github.com/Knetic/govaluate v3.0.0+incompatible
 	github.com/aws/aws-sdk-go v1.17.6
 	github.com/cenkalti/backoff v2.0.0+incompatible
+	github.com/chai2010/tiff v0.0.0-20170224011043-1e1a564e3705
 	github.com/cpuguy83/go-md2man v1.0.9-0.20180619205630-691ee98543af // indirect
 	github.com/ctessum/atmos v0.0.0-20170526022537-cba69f7ca647
 	github.com/ctessum/cdf v0.0.0-20181201011353-edced208ea9d

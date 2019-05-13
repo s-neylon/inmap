@@ -26,6 +26,7 @@ import (
 
 	"github.com/ctessum/geom"
 	"github.com/ctessum/geom/index/rtree"
+	"github.com/ctessum/geom/proj"
 )
 
 func TestVarGridCreate(t *testing.T) {
@@ -876,4 +877,20 @@ func different(a, b, tolerance float64) bool {
 		return true
 	}
 	return false
+}
+
+func TestVarGridConfig_loadPopulationGeoTIFF(t *testing.T) {
+	c := &VarGridConfig{
+		CensusFile:       "/home/ctessum/Downloads/gpw_v4_population_count_rev11_2020_2pt5_min.tif",
+		CensusPopColumns: []string{"TotalPop"},
+	}
+
+	sr, err := proj.Parse("+proj=longlat")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, err = c.loadPopulation(sr)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
