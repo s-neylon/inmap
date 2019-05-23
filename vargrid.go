@@ -19,6 +19,8 @@ along with InMAP.  If not, see <http://www.gnu.org/licenses/>.
 package inmap
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"math"
@@ -826,16 +828,21 @@ func (config *VarGridConfig) loadPopulationGeoTIFF(sr *proj.SR) (*rtree.Rtree, m
 
 	for i := 0; i < len(config.CensusPopColumns); i++ {
 		ifd := p.Ifd[i][0]
-		fmt.Println("xxxxxxxxxxxxxxxxx image type", ifd.ImageType())
-		ifc, err := ifd.ImageConfig()
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println("xxxxxxxxxxxxxxxxx image config", ifc)
 		for x, y := range ifd.EntryMap {
 			fmt.Println(x, y)
 		}
-		fmt.Println("Compression", ifd.Compression(), "depth", ifd.Depth())
+
+		// Parse no-data value.
+		var noData float32
+		if noDataStr, ok := ifd.EntryMap[tiff.TagType_GDAL_NODATA]; ok {
+			v, err := strconv.ParseFloat(strings.TrimSuffix(string(noDataStr.Data), "\x00"), 64)
+			if err != nil {
+				return nil, nil, fmt.Errorf("inmap: parsing population GeoTIFF file no-data value: %v", err)
+			}
+			noData = float32(v)
+		} else {
+			noData = float32(math.NaN())
+		}
 
 		// Adapted from tiff/tiff_ifd_block.go
 		bounds := ifd.BlockBounds(i, 0)
@@ -851,6 +858,7 @@ func (config *VarGridConfig) loadPopulationGeoTIFF(sr *proj.SR) (*rtree.Rtree, m
 		if data, err = ifd.Compression().Decode(limitReader, bounds.Dx(), bounds.Dy()); err != nil {
 			return nil, nil, err
 		}
+		fmt.Println("compression type", ifd.Compression())
 
 		predictor, ok := ifd.TagGetter().GetPredictor()
 		if ok && predictor == tiff.TagValue_PredictorType_Horizontal {
@@ -858,39 +866,41 @@ func (config *VarGridConfig) loadPopulationGeoTIFF(sr *proj.SR) (*rtree.Rtree, m
 		}
 
 		if ifd.ImageType() != tiff.ImageType_Gray {
-			return nil, nil, fmt.Errorf("inmap: invalid population GeoTIFF image type %v, must be `Gray`", ifd.ImageType())
+			return nil, nil, fmt.Errorf("inmap: unsupported population GeoTIFF image type %v, must be `Gray`", ifd.ImageType())
 		}
 		if ifd.Depth() != 32 {
-			return nil, nil, fmt.Errorf("inmap: invalid population GeoTIFF depth %v, must be 32", ifd.Depth())
-		}
-
-		m, err := p.DecodeImage(i, 0)
-		if err != nil {
-			return nil, nil, fmt.Errorf("inmap: decoding population GeoTIFF file image %d: %v", i, err)
+			return nil, nil, fmt.Errorf("inmap: unsupported population GeoTIFF depth %v, must be 32", ifd.Depth())
 		}
 
 		v := make([]float32, (bounds.Max.X-bounds.Min.X)*(bounds.Max.Y-bounds.Min.Y))
 
-		var min, max = math.Inf(1), math.Inf(-1)
-
-		bpp := uint(ifd.Depth())
-		bitReader := newBitsReader(data)
-		//max := uint32((1 << uint(ifd.Depth())) - 1)
+		buf := bytes.NewReader(data)
+		fmt.Println("data", data[0:50])
+		fmt.Println("xxxxxxxxxxxxx", len(v), len(data), len(data)/4)
+		var i int
 		for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 			for x := bounds.Min.X; x < bounds.Max.X; x++ {
-				v, ok := bitReader.ReadBits(bpp)
-				if !ok {
+				var val float32
+				if err := binary.Read(buf, binary.LittleEndian, &val); err != nil {
 					err = fmt.Errorf("inmap: tiff: IFD.decodeBlock, not enough pixel data")
 					return nil, nil, err
 				}
-				//v = v * 0xff / max
-				min = math.Min(min, v)
-				max = math.Max(max, v)
+				if val == noData {
+					v[i] = float32(math.NaN())
+				} else {
+					v[i] = val
+				}
+				i++
 			}
-			bitReader.flushBits()
 		}
-
-		fmt.Println("xxxxxxxxxxxxxxxxxxxxxxxxxxxx", min, max)
+		fmt.Println(v[0:10])
+		var sum float32
+		for _, x := range v {
+			if !math.IsNaN(float64(x)) {
+				sum += x
+			}
+		}
+		fmt.Println("population: ", sum/1.0e9, "billion")
 	}
 	return nil, nil, nil
 }

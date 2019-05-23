@@ -881,7 +881,7 @@ func different(a, b, tolerance float64) bool {
 
 func TestVarGridConfig_loadPopulationGeoTIFF(t *testing.T) {
 	c := &VarGridConfig{
-		CensusFile:       "/home/ctessum/Downloads/gpw_v4_population_count_rev11_2020_2pt5_min.tif",
+		CensusFile:       "/home/ctessum/data/gpw/gpw_v4_population_count_rev11_2020_30_sec.tif",
 		CensusPopColumns: []string{"TotalPop"},
 	}
 

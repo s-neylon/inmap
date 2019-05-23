@@ -68,6 +68,7 @@ require (
 	golang.org/x/build v0.0.0-20190226180436-80ca8d25ddd4
 	golang.org/x/crypto v0.0.0-20190225124518-7f87c0fbb88b
 	golang.org/x/exp v0.0.0-20190221220918-438050ddec5e // indirect
+	golang.org/x/image v0.0.0-20180708004352-c73c2afc3b81
 	golang.org/x/net v0.0.0-20190227022144-312bce6e941f
 	golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421 // indirect
 	golang.org/x/sys v0.0.0-20190226215855-775f8194d0f9 // indirect
