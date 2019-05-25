@@ -19,10 +19,7 @@ along with InMAP.  If not, see <http://www.gnu.org/licenses/>.
 package inmap
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
-	"io"
 	"math"
 	"os"
 	"path/filepath"
@@ -34,11 +31,11 @@ import (
 	"github.com/ctessum/cdf"
 	"github.com/ctessum/sparse"
 
-	"github.com/chai2010/tiff"
 	"github.com/ctessum/geom"
 	"github.com/ctessum/geom/encoding/shp"
 	"github.com/ctessum/geom/index/rtree"
 	"github.com/ctessum/geom/proj"
+	"github.com/jblindsay/go-spatial/geospatialfiles/raster/geotiff"
 	"gonum.org/v1/gonum/floats"
 )
 
@@ -798,7 +795,7 @@ type mortality struct {
 // holding the population information and a map giving the array index
 // of each population type.
 func (config *VarGridConfig) loadPopulation(sr *proj.SR) (*rtree.Rtree, map[string]int, error) {
-	switch filepath.Ext(config.CensusFile) {
+	switch strings.ToLower(filepath.Ext(config.CensusFile)) {
 	case ".shp":
 		return config.loadPopulationSHP(sr)
 	case ".tif", ".tiff", ".geotif", ".geotiff":
@@ -812,96 +809,26 @@ func (config *VarGridConfig) loadPopulation(sr *proj.SR) (*rtree.Rtree, map[stri
 // to spatial reference sr. The function outputs an index holding the population
 // information and a map giving the array index of each population type.
 func (config *VarGridConfig) loadPopulationGeoTIFF(sr *proj.SR) (*rtree.Rtree, map[string]int, error) {
-	f, err := os.Open(config.CensusFile)
+	tif := new(geotiff.GeoTIFF)
+	if err := tif.Read(config.CensusFile); err != nil {
+		return nil, nil, fmt.Errorf("inmap: reading population GeoTIFF file: %v", err)
+	}
+	fmt.Println(tif.Data[0:100])
+	noData, err := strconv.ParseFloat(tif.NodataValue, 64)
 	if err != nil {
-		return nil, nil, fmt.Errorf("inmap: opening population GeoTIFF file: %v", err)
+		return nil, nil, fmt.Errorf("inmap: parsing population GeoTIFF file no-data value: %v", err)
 	}
-	defer f.Close()
-	p, err := tiff.OpenReader(f)
-	if err != nil {
-		return nil, nil, fmt.Errorf("inmap: decoding population GeoTIFF file: %v", err)
+	fmt.Println(noData)
+
+	var sum float64
+	for _, v := range tif.Data {
+		if v != noData {
+			fmt.Println(v)
+			sum += v
+		}
 	}
+	fmt.Println("total pop", sum)
 
-	if p.ImageNum() < len(config.CensusPopColumns) {
-		return nil, nil, fmt.Errorf("inmap: number of images GeoTIFF population file (%d) is less than number of CensusPopColumns (%d)", p.ImageNum(), len(config.CensusPopColumns))
-	}
-
-	for i := 0; i < len(config.CensusPopColumns); i++ {
-		ifd := p.Ifd[i][0]
-		for x, y := range ifd.EntryMap {
-			fmt.Println(x, y)
-		}
-
-		// Parse no-data value.
-		var noData float32
-		if noDataStr, ok := ifd.EntryMap[tiff.TagType_GDAL_NODATA]; ok {
-			v, err := strconv.ParseFloat(strings.TrimSuffix(string(noDataStr.Data), "\x00"), 64)
-			if err != nil {
-				return nil, nil, fmt.Errorf("inmap: parsing population GeoTIFF file no-data value: %v", err)
-			}
-			noData = float32(v)
-		} else {
-			noData = float32(math.NaN())
-		}
-
-		// Adapted from tiff/tiff_ifd_block.go
-		bounds := ifd.BlockBounds(i, 0)
-		offset := ifd.BlockOffset(i, 0)
-		count := ifd.BlockCount(i, 0)
-
-		if _, err = f.Seek(offset, 0); err != nil {
-			return nil, nil, err
-		}
-		limitReader := io.LimitReader(f, count)
-
-		var data []byte
-		if data, err = ifd.Compression().Decode(limitReader, bounds.Dx(), bounds.Dy()); err != nil {
-			return nil, nil, err
-		}
-		fmt.Println("compression type", ifd.Compression())
-
-		predictor, ok := ifd.TagGetter().GetPredictor()
-		if ok && predictor == tiff.TagValue_PredictorType_Horizontal {
-			return nil, nil, fmt.Errorf("inmap: unsupported population GeoTIFF image predictor %v", predictor)
-		}
-
-		if ifd.ImageType() != tiff.ImageType_Gray {
-			return nil, nil, fmt.Errorf("inmap: unsupported population GeoTIFF image type %v, must be `Gray`", ifd.ImageType())
-		}
-		if ifd.Depth() != 32 {
-			return nil, nil, fmt.Errorf("inmap: unsupported population GeoTIFF depth %v, must be 32", ifd.Depth())
-		}
-
-		v := make([]float32, (bounds.Max.X-bounds.Min.X)*(bounds.Max.Y-bounds.Min.Y))
-
-		buf := bytes.NewReader(data)
-		fmt.Println("data", data[0:50])
-		fmt.Println("xxxxxxxxxxxxx", len(v), len(data), len(data)/4)
-		var i int
-		for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
-			for x := bounds.Min.X; x < bounds.Max.X; x++ {
-				var val float32
-				if err := binary.Read(buf, binary.LittleEndian, &val); err != nil {
-					err = fmt.Errorf("inmap: tiff: IFD.decodeBlock, not enough pixel data")
-					return nil, nil, err
-				}
-				if val == noData {
-					v[i] = float32(math.NaN())
-				} else {
-					v[i] = val
-				}
-				i++
-			}
-		}
-		fmt.Println(v[0:10])
-		var sum float32
-		for _, x := range v {
-			if !math.IsNaN(float64(x)) {
-				sum += x
-			}
-		}
-		fmt.Println("population: ", sum/1.0e9, "billion")
-	}
 	return nil, nil, nil
 }
 

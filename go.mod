@@ -36,6 +36,7 @@ require (
 	github.com/hashicorp/hcl v0.0.0-20171017181929-23c074d0eceb // indirect
 	github.com/improbable-eng/grpc-web v0.0.0-20190113155728-0c7a81a25d11
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/jblindsay/go-spatial v0.0.0-20180424204008-d99e8d0e3d1a
 	github.com/johanbrandhorst/protobuf v0.6.1
 	github.com/jonas-p/go-shp v0.0.0-20171012111128-5b9c3047ce59
 	github.com/json-iterator/go v1.1.5 // indirect
