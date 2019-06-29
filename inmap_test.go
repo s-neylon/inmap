@@ -172,7 +172,7 @@ func BenchmarkRun(b *testing.B) {
 		b.Error(err)
 	}
 
-	o, err := inmap.NewOutputter("", false, map[string]string{"TotalPopDeaths": "(exp(log(1.078)/10 * TotalPM25) - 1) * TotalPop * MortalityRate / 100000"}, nil, m)
+	o, err := inmap.NewOutputter("", false, map[string]string{"TotalPopDeaths": "(exp(log(1.078)/10 * TotalPM25) - 1) * TotalPop * AllCause / 100000"}, nil, m)
 	if err != nil {
 		b.Error(err)
 	}
@@ -183,7 +183,7 @@ func BenchmarkRun(b *testing.B) {
 	}
 	results := r["TotalPopDeaths"]
 	totald := floats.Sum(results)
-	const expectedDeaths = 6.614182415997713e-06
+	const expectedDeaths = 6.61418262473088
 
 	if different(totald, expectedDeaths, testTolerance) {
 		b.Errorf("Deaths (%v) doesn't equal %v", totald, expectedDeaths)

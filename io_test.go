@@ -336,7 +336,7 @@ func BenchmarkOutput(b *testing.B) {
 			"NPctWNoLat": "{sum(WhiteNoLat) / sum(TotalPop)}",
 			"NPctOther":  "{(sum(TotalPop) - sum(WhiteNoLat)) / sum(TotalPop)}",
 			"NPctRatio":  "NPctWNoLat / NPctOther",
-			"TotalPopD":  "(exp(log(1.078)/10 * TotalPM25) - 1) * TotalPop * MortalityRate / 100000",
+			"TotalPopD":  "(exp(log(1.078)/10 * TotalPM25) - 1) * TotalPop * AllCause / 100000",
 			"TotalPM25":  "TotalPM25",
 			"PM25Emiss":  "PM25Emissions",
 			"BasePM25":   "BaselineTotalPM25",
