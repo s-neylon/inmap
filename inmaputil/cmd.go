@@ -653,10 +653,10 @@ func InitializeConfig() *Cfg {
 		{
 			name: "VarGrid.CensusFile",
 			usage: `
-              VarGrid.CensusFile is the path to the shapefile holding population information.`,
+              VarGrid.CensusFile is the path to the shapefile holding population information. (Optional for 'sr predict')`,
 			defaultVal:  "${INMAP_ROOT_DIR}/cmd/inmap/testdata/testPopulation.shp",
 			isInputFile: true,
-			flagsets:    []*pflag.FlagSet{cfg.runCmd.PersistentFlags(), cfg.gridCmd.Flags(), cfg.cloudStartCmd.Flags(), cfg.srStartCmd.Flags()},
+			flagsets:    []*pflag.FlagSet{cfg.runCmd.PersistentFlags(), cfg.gridCmd.Flags(), cfg.cloudStartCmd.Flags(), cfg.srStartCmd.Flags(), cfg.srPredictCmd.Flags()},
 		},
 		{
 			name: "VarGrid.CensusPopColumns",
@@ -681,10 +681,10 @@ func InitializeConfig() *Cfg {
 			name: "VarGrid.MortalityRateFile",
 			usage: `
               VarGrid.MortalityRateFile is the path to the shapefile containing baseline
-              mortality rate data.`,
+              mortality rate data. (Optional for 'sr predict')`,
 			defaultVal:  "${INMAP_ROOT_DIR}/cmd/inmap/testdata/testMortalityRate.shp",
 			isInputFile: true,
-			flagsets:    []*pflag.FlagSet{cfg.runCmd.PersistentFlags(), cfg.gridCmd.Flags(), cfg.cloudStartCmd.Flags(), cfg.srStartCmd.Flags()},
+			flagsets:    []*pflag.FlagSet{cfg.runCmd.PersistentFlags(), cfg.gridCmd.Flags(), cfg.cloudStartCmd.Flags(), cfg.srStartCmd.Flags(), cfg.srPredictCmd.Flags()},
 		},
 		{
 			name: "VarGrid.MortalityRateColumns",

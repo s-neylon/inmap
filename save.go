@@ -96,7 +96,7 @@ func (d *InMAP) initFromCells(cells []*Cell, emis *Emissions, config *VarGridCon
 	for i, p := range config.CensusPopColumns {
 		d.PopIndices[p] = i
 	}
-	d.mortIndices = make(map[string]int)
+	d.MortIndices = make(map[string]int)
 	mortRateColumns := make([]string, len(config.MortalityRateColumns))
 	i := 0
 	for m := range config.MortalityRateColumns {
@@ -105,7 +105,7 @@ func (d *InMAP) initFromCells(cells []*Cell, emis *Emissions, config *VarGridCon
 	}
 	sort.Strings(mortRateColumns)
 	for i, m := range mortRateColumns {
-		d.mortIndices[m] = i
+		d.MortIndices[m] = i
 	}
 	for _, c := range cells {
 		d.InsertCell(c, m)

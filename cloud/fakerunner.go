@@ -71,6 +71,7 @@ func fakeRun(checkConfig func([]string), checkRun func([]byte, error), jobs *[]b
 		if checkRun != nil {
 			checkRun(o, err)
 		}
+		fmt.Println(string(o))
 
 		// Set status.
 		job.Status.Conditions = []batch.JobCondition{{

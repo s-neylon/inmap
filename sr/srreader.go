@@ -513,3 +513,32 @@ func (sr *Reader) get(pol string, start, end []int) ([]float64, error) {
 	}
 	return dat64, err
 }
+
+// LoadPopMort loads user-specified population and mortality rate data into the
+// SR matrix reader. If the variable names for the population and
+// mortality rate data are the same as the names of existing variables in
+// the SR matrix, the existing variables will be overwritten.
+func (sr *Reader) LoadPopMort(c *inmap.VarGridConfig) error {
+	pop, popIndices, mortRates, mortIndices, err := c.LoadPopMort()
+	if err != nil {
+		return err
+	}
+	sr.d.MortIndices = mortIndices
+
+	for p, i := range popIndices {
+		sr.d.PopIndices[p] = i
+	}
+
+	for _, cell := range sr.d.Cells() {
+		cell.MortData = make([]float64, len(mortIndices))
+
+		// add extra space to population array for new variables.
+		cell.PopData = append(make([]float64, len(popIndices)), cell.PopData...)
+
+		if cell.Layer == 0 {
+			// only ground level grid cells have people
+			cell.LoadPopMortalityRate(c, mortRates, mortIndices, pop, popIndices)
+		}
+	}
+	return nil
+}

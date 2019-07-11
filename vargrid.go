@@ -352,7 +352,7 @@ func (config *VarGridConfig) RegularGrid(data *CTMData, pop *Population, popInde
 		}
 
 		d.PopIndices = (map[string]int)(popIndex)
-		d.mortIndices = (map[string]int)(mortIndex)
+		d.MortIndices = (map[string]int)(mortIndex)
 
 		nz := data.Data["UAvg"].Data.Shape[0]
 		d.nlayers = nz
@@ -501,7 +501,7 @@ func (d *InMAP) addCells(config *VarGridConfig, newCellIndices [][][2]int,
 				if conc != nil {
 					conci = conc[i]
 				}
-				cell, err2 := config.createCell(data, pop, d.PopIndices, mortRates, d.mortIndices, ii,
+				cell, err2 := config.createCell(data, pop, d.PopIndices, mortRates, d.MortIndices, ii,
 					newCellLayers[i], conci, webMapTrans, m, notMeters)
 				cellErrChan <- cellErr{cell: cell, err: err2}
 			}
@@ -693,7 +693,7 @@ func (config *VarGridConfig) createCell(data *CTMData, pop *Population, popIndic
 	cell.Polygonal = config.cellGeometry(index)
 	if layer == 0 {
 		// only ground level grid cells have people
-		cell.loadPopMortalityRate(config, mortRates, mortIndices, pop, popIndices)
+		cell.LoadPopMortalityRate(config, mortRates, mortIndices, pop, popIndices)
 	}
 
 	gg, err := cell.Polygonal.Transform(webMapTrans)
@@ -725,13 +725,13 @@ func (config *VarGridConfig) createCell(data *CTMData, pop *Population, popIndic
 	return cell, nil
 }
 
-// loadPopMortalityRate calculates the population and baseline mortality rate for this cell.
+// LoadPopMortalityRate calculates the population and baseline mortality rate for this cell.
 // The population in each cell is calculated as an area-weighted average.
 // The mortality rate in each cell is calculated as a population-weighted average. If
 // multiple mortality rate polygons overlap or lie within a single population
 // polygon, the mortality rate in each cell is equal to the population-weighted
 // average of: the area-weighted average of mortality rates within each population polygon.
-func (c *Cell) loadPopMortalityRate(config *VarGridConfig, mortRates *MortalityRates, mortIndices MortIndices, pop *Population, popIndices PopIndices) {
+func (c *Cell) LoadPopMortalityRate(config *VarGridConfig, mortRates *MortalityRates, mortIndices MortIndices, pop *Population, popIndices PopIndices) {
 	// First, prepare mortality rates for later processing.
 	cellMortI := mortRates.tree.SearchIntersect(c.Bounds())
 	cellMort := make([]*mortality, len(cellMortI))

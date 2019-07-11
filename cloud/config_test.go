@@ -138,12 +138,14 @@ func TestSRPredictInputFromViper(t *testing.T) {
 	}
 
 	wantArgs := map[string]string{
-		"--EmissionUnits":       "tons/year",
-		"--EmissionsShapefiles": "258bbcefe8c0073d6f323351463be9e9685e74bb92e367ca769b9536ed247213.shp",
-		"--OutputFile":          "inmap_output.shp",
-		"--OutputVariables":     "{\"PrimPM25\":\"PrimaryPM25\"}",
-		"--SR.OutputFile":       "${INMAP_ROOT_DIR}/cmd/inmap/testdata/output_${InMAPRunType}.shp",
-		"--VarGrid.GridProj":    "+proj=lcc +lat_1=33.000000 +lat_2=45.000000 +lat_0=40.000000 +lon_0=-97.000000 +x_0=0 +y_0=0 +a=6370997.000000 +b=6370997.000000 +to_meter=1",
+		"--EmissionUnits":             "tons/year",
+		"--EmissionsShapefiles":       "258bbcefe8c0073d6f323351463be9e9685e74bb92e367ca769b9536ed247213.shp",
+		"--OutputFile":                "inmap_output.shp",
+		"--OutputVariables":           "{\"PrimPM25\":\"PrimaryPM25\"}",
+		"--SR.OutputFile":             "${INMAP_ROOT_DIR}/cmd/inmap/testdata/output_${InMAPRunType}.shp",
+		"--VarGrid.GridProj":          "+proj=lcc +lat_1=33.000000 +lat_2=45.000000 +lat_0=40.000000 +lon_0=-97.000000 +x_0=0 +y_0=0 +a=6370997.000000 +b=6370997.000000 +to_meter=1",
+		"--VarGrid.CensusFile":        "72f6717ef5f6f9600378fe5b192776ba142b3e93311c3dfd0b67bfecbe399990.shp",
+		"--VarGrid.MortalityRateFile": "764874ad5081665459c67d40607f68df6fc689aa695b4822e012aef84cba5394.shp",
 	}
 	if len(js.Args) != len(wantArgs)*2 {
 		t.Errorf("wrong number of arguments: %d != %d", len(js.Args)/2, len(wantArgs))
@@ -164,6 +166,14 @@ func TestSRPredictInputFromViper(t *testing.T) {
 		"258bbcefe8c0073d6f323351463be9e9685e74bb92e367ca769b9536ed247213.prj": 432,
 		"258bbcefe8c0073d6f323351463be9e9685e74bb92e367ca769b9536ed247213.shp": 620,
 		"258bbcefe8c0073d6f323351463be9e9685e74bb92e367ca769b9536ed247213.dbf": 869,
+		"764874ad5081665459c67d40607f68df6fc689aa695b4822e012aef84cba5394.shp": 236,
+		"764874ad5081665459c67d40607f68df6fc689aa695b4822e012aef84cba5394.shx": 108,
+		"764874ad5081665459c67d40607f68df6fc689aa695b4822e012aef84cba5394.dbf": 341,
+		"764874ad5081665459c67d40607f68df6fc689aa695b4822e012aef84cba5394.prj": 432,
+		"72f6717ef5f6f9600378fe5b192776ba142b3e93311c3dfd0b67bfecbe399990.dbf": 353,
+		"72f6717ef5f6f9600378fe5b192776ba142b3e93311c3dfd0b67bfecbe399990.prj": 432,
+		"72f6717ef5f6f9600378fe5b192776ba142b3e93311c3dfd0b67bfecbe399990.shp": 236,
+		"72f6717ef5f6f9600378fe5b192776ba142b3e93311c3dfd0b67bfecbe399990.shx": 108,
 	}
 	if len(js.FileData) != len(wantFiles) {
 		t.Errorf("incorrect number of files: %d != %d", len(js.FileData), len(wantFiles))

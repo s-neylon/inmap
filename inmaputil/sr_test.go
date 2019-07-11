@@ -71,6 +71,7 @@ func TestSRPredict(t *testing.T) {
 "TotalPopD": "(exp(log(1.078)/10 * TotalPM25) - 1) * TotalPop * allcause / 100000"}`)
 	cfg.Set("EmissionsShapefiles", []string{"../cmd/inmap/testdata/testEmisSR.shp"})
 	defer os.Remove(os.ExpandEnv("$INMAP_ROOT_DIR/cmd/inmap/testdata/output_SRPredict.log"))
+	defer os.Remove("inmap_output.log")
 	defer inmap.DeleteShapefile(os.ExpandEnv("$INMAP_ROOT_DIR/cmd/inmap/testdata/output_SRPredict.shp"))
 
 	cfg.Set("config", "../cmd/inmap/configExample.toml")
@@ -86,6 +87,7 @@ func TestSRPredictAboveTop(t *testing.T) {
 	cfg.Set("SR.OutputFile", "../cmd/inmap/testdata/testSR_golden.ncf")
 	cfg.Set("OutputFile", "../cmd/inmap/testdata/output_SRPredict.shp")
 	defer os.Remove(os.ExpandEnv("$INMAP_ROOT_DIR/cmd/inmap/testdata/output_SRPredict.log"))
+	defer os.Remove("inmap_output.log")
 	defer inmap.DeleteShapefile(os.ExpandEnv("$INMAP_ROOT_DIR/cmd/inmap/testdata/output_SRPredict.shp"))
 	cfg.Set("OutputVariables", `{"PNH4": "pNH4",
 	"PNO3": "pNO3",

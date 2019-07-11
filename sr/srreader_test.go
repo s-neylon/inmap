@@ -501,3 +501,115 @@ func TestOutput(t *testing.T) {
 	dec.Close()
 	inmap.DeleteShapefile(TestOutputFilename)
 }
+
+func TestReader_LoadPopMort(t *testing.T) {
+	r, err := os.Open("../cmd/inmap/testdata/testSR_golden.ncf")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sr, err := NewReader(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sRef, err := proj.Parse("+proj=lcc +lat_1=33.000000 +lat_2=45.000000 +lat_0=40.000000 +lon_0=-97.000000 +x_0=0 +y_0=0 +a=6370997.000000 +b=6370997.000000 +to_meter=1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	type outData struct {
+		TotalPop   float64
+		WhiteNoLat float64
+		AllCause   float64
+	}
+
+	runTest := func(t *testing.T, sr *Reader, shpWant []outData) {
+		const TestOutputFilename = "testOutput.shp"
+
+		if err = sr.Output(TestOutputFilename, map[string]string{
+			"TotalPop":   "TotalPop",
+			"WhiteNoLat": "WhiteNoLat",
+			"AllCause":   "allcause",
+		},
+			nil, sRef); err != nil {
+			t.Fatal(err)
+		}
+
+		dec, err := shp.NewDecoder(TestOutputFilename)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var recs []outData
+		for {
+			var rec outData
+			if more := dec.DecodeRow(&rec); !more {
+				break
+			}
+			recs = append(recs, rec)
+		}
+		if err := dec.Error(); err != nil {
+			t.Fatal(err)
+		}
+
+		if len(recs) != len(shpWant) {
+			t.Errorf("want %d records but have %d", len(shpWant), len(recs))
+		}
+		for i, w := range shpWant {
+			if i >= len(recs) {
+				continue
+			}
+			h := recs[i]
+			if !reflect.DeepEqual(w, h) {
+				t.Errorf("record %d: want %+v but have %+v", i, w, h)
+			}
+		}
+		dec.Close()
+		inmap.DeleteShapefile(TestOutputFilename)
+	}
+
+	shpWant := []outData{
+		outData{TotalPop: 100000, WhiteNoLat: 50000, AllCause: 800},
+		outData{}, outData{}, outData{}, outData{},
+		outData{}, outData{}, outData{}, outData{}, outData{},
+	}
+
+	t.Run("first test", func(t *testing.T) {
+		runTest(t, sr, shpWant)
+	})
+
+	cell := sr.d.Cells()[0]
+	cell.PopData[sr.d.PopIndices["TotalPop"]] = 42
+	cell.PopData[sr.d.PopIndices["WhiteNoLat"]] = 26
+	cell.PopData[sr.d.PopIndices["allcause"]] = 12
+
+	shpWant2 := []outData{
+		outData{AllCause: 12, TotalPop: 42, WhiteNoLat: 26},
+		outData{}, outData{}, outData{}, outData{},
+		outData{}, outData{}, outData{}, outData{}, outData{},
+	}
+
+	t.Run("after deleting population", func(t *testing.T) {
+		runTest(t, sr, shpWant2)
+	})
+
+	if err := sr.LoadPopMort(&inmap.VarGridConfig{
+		CensusFile:        "../cmd/inmap/testdata/testPopulation.shp",
+		CensusPopColumns:  []string{"TotalPop", "WhiteNoLat", "Black", "Native", "Asian", "Latino"},
+		GridProj:          "+proj=lcc +lat_1=33.000000 +lat_2=45.000000 +lat_0=40.000000 +lon_0=-97.000000 +x_0=0 +y_0=0 +a=6370997.000000 +b=6370997.000000 +to_meter=1",
+		MortalityRateFile: "../cmd/inmap/testdata/testMortalityRate.shp",
+		MortalityRateColumns: map[string]string{
+			"allcause":   "TotalPop",
+			"whnolmort":  "WhiteNoLat",
+			"blackmort":  "Black",
+			"asianmort":  "Native",
+			"nativemort": "Asian",
+			"latinomort": "Latino",
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("after adding population back in", func(t *testing.T) {
+		runTest(t, sr, shpWant)
+	})
+}

@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/spatialmodel/inmap"
 	"github.com/spatialmodel/inmap/cloud/cloudrpc"
@@ -137,6 +138,16 @@ func SRPredict(EmissionUnits, SROutputFile, OutputFile string, outputVariables m
 	if err != nil {
 		return err
 	}
+
+	if !strings.Contains(VarGrid.CensusFile, "testPopulation.shp") ||
+		!strings.Contains(VarGrid.MortalityRateFile, "testMortalityRate.shp") {
+		// TODO: Use more robust method for using default population data.
+		log.Print("loading population and mortality rate data")
+		if err := r.LoadPopMort(VarGrid); err != nil {
+			return err
+		}
+	}
+
 	conc, err := r.Concentrations(emis.EmisRecords()...)
 	if err != nil {
 		if _, ok := err.(sr.AboveTopErr); ok {

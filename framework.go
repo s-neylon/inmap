@@ -80,9 +80,9 @@ type InMAP struct {
 	// field in each Cell.
 	PopIndices map[string]int
 
-	// mortIndices gives the array index of each mortality rate in the mortData
+	// MortIndices gives the array index of each mortality rate in the mortData
 	// field in each Cell.
-	mortIndices map[string]int
+	MortIndices map[string]int
 
 	// index is a spatial index of Cells.
 	index *rtree.Rtree
@@ -476,7 +476,7 @@ func (d *InMAP) VerticalProfile(variable string, p geom.Point, m Mechanism) (hei
 	}
 	i := 0
 	for !c.boundary {
-		vals[i] = c.getValue(variable, d.PopIndices, d.mortIndices, m)
+		vals[i] = c.getValue(variable, d.PopIndices, d.MortIndices, m)
 		height[i] = c.LayerHeight + c.Dz/2.
 		c = (*c.above)[0].Cell
 		i++
