@@ -19,5 +19,3 @@ along with InMAP.  If not, see <http://www.gnu.org/licenses/>.
 /*Package inmap is an air quality model for predicting health impacts of air
 pollutant emissions.*/
 package inmap
-
-//go:generate go run internal/autogen.go
