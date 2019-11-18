@@ -308,7 +308,9 @@ func (sr *Reader) Concentrations(emis ...*inmap.EmisRecord) (*Concentrations, er
 					if emis != 0 {
 						v, err := sr.Source(polNames[i], layer, index)
 						if err != nil {
-							return nil, err
+							fmt.Println("ERROR:", err)
+							continue
+							//return nil, err
 						}
 						switch polNames[i] {
 						case "pNH4":
