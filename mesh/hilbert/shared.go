@@ -1,5 +1,5 @@
 /*
-Copyright © 2013 the InMAP authors.
+Copyright © 2020 the InMAP authors.
 This file is part of InMAP.
 
 InMAP is free software: you can redistribute it and/or modify
@@ -16,6 +16,21 @@ You should have received a copy of the GNU General Public License
 along with InMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/*Package inmap implements an air quality model for predicting health impacts of air
-pollutant emissions.*/
-package inmap
+package hilbert
+
+import (
+	"github.com/golang/geo/s2"
+)
+
+// Bounds defines the boundaries of the mesh.
+type Bounds = s2.Region
+
+// RectBounds creates an approximate rectangular boundary for the mesh.
+func RectBounds(centerLat, centerLon, sizeLat, sizeLon float64) Bounds {
+	center := s2.LatLngFromDegrees(centerLat, centerLon)
+	size := s2.LatLngFromDegrees(sizeLat, sizeLon)
+	return s2.Region(s2.RectFromCenterSize(center, size))
+}
+
+// A Projection maps the spherical geometry to planar coordinates.
+type Projection = s2.Projection

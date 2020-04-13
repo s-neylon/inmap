@@ -16,11 +16,11 @@ You should have received a copy of the GNU General Public License
 along with InMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/*Package mesh defines interfaces for spatial meshes.*/
+// Package mesh defines interfaces for spatial meshes.
 package mesh
 
 import (
-	"github.com/spatialmodel/inmap/v2/distribute"
+	"github.com/spatialmodel/inmap/v2/unit"
 )
 
 // Mesh describes a spatial mesh.
@@ -29,18 +29,23 @@ type Mesh interface {
 	// in this mesh.
 	Dims() int
 
-	// Len is the total number of cells in this Mesh.
-	Len() int
+	// Cells is the total number of cells in this Mesh.
+	Cells() int
 
-	// Cell returns the mesh cell at index i (where i < Len()).
+	// Cell returns the cell at the given index (where i < Cells())
 	Cell(i int) Cell
 
-	// Group divides the Mesh into n groups, using the specified
-	// method for distributing the groups across resources.
-	Groups(n int, d distribute.Distributor) (Meshes, error)
+	// Faces returns the number of faces that comprise
+	// the geometry of the cell at the given index (where cell < Cells()).
+	Faces() int
+
+	// Face returns the face at the given cell index (where cell < Cells())
+	// and face index (where face < Faces(cell)).
+	// The face will have one fewer dimensions than the cell.
+	Face(i int) Face
 
 	// MarshalBinary serializes this mesh into a byte array.
-	MarshalBinary() ([]byte, error)
+	MarshalBinary() []byte
 
 	// UnmarshalBinary initializes this mesh from a byte array.
 	UnmarshalBinary([]byte) error
@@ -87,33 +92,16 @@ const (
 
 // Cell specifies a cell in a mesh
 type Cell interface {
-	// Faces returns the number of planar faces that comprise
-	// the cell geometry.
-	Faces() int
+	// Measure returns the characteristic measure of the face.
+	// Use the Units method to get the units of the measure.
+	Measure() float64
 
-	// Face returns the face at the given index.
-	// The face will have one fewer dimensions than the cell.
-	Face(int) Face
-
-	// Centroid returns the centroid of this cell.
-	Centroid() Point
-
-	// MarshalBinary serializes this cell into a byte array.
-	MarshalBinary() ([]byte, error)
-
-	// UnmarshalBinary initializes this cell from a byte array.
-	UnmarshalBinary([]byte) error
+	// Unit returns the units of the characteristic measure.
+	Unit() unit.Unit
 }
 
-// Face represents the planar face of a cell.
+// Face represents the face of a cell.
 type Face interface {
-	// Points returns the number of points that
-	// comprise this face.
-	Points() int
-
-	// Point returns the point at the given index.
-	Point(int) Point
-
 	// Lesser returns the cell that is on the lesser side
 	// of this face (the side that has a lower value in whatever
 	// coordinate system is being used).
@@ -122,6 +110,13 @@ type Face interface {
 	// Greater returns the cell that is
 	// on the greater side of this face.
 	Greater() Cell
+
+	// Measure returns the characteristic measure of the face.
+	// Use the Units method to get the units of the measure.
+	Measure() float64
+
+	// Unit returns the units of the characteristic measure.
+	Unit() unit.Unit
 }
 
 // FaceOpposing specifies a face that has another face opposing
@@ -131,7 +126,7 @@ type FaceOpposing interface {
 
 	// Opposing returns the Face directly across from the
 	// receiver in the given cell.
-	Opposing(Cell) Face
+	Opposing() Face
 }
 
 // Point represents a point in vector space.
@@ -139,6 +134,6 @@ type Point interface {
 	// Len returns the number of dimensions of this point.
 	Len() int
 
-	// D returns the point value in the specified dimension.
-	D(int) float64
+	// V returns the point value in the specified dimension.
+	V(int) float64
 }

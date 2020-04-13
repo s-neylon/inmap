@@ -1,5 +1,5 @@
 /*
-Copyright © 2013 the InMAP authors.
+Copyright © 2020 the InMAP authors.
 This file is part of InMAP.
 
 InMAP is free software: you can redistribute it and/or modify
@@ -16,6 +16,14 @@ You should have received a copy of the GNU General Public License
 along with InMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/*Package inmap implements an air quality model for predicting health impacts of air
-pollutant emissions.*/
-package inmap
+// Package unit defines scientific units.
+package unit
+
+// Unit is a scientific unit.
+type Unit int
+
+// Scientific units
+const (
+	Meter Unit = iota
+	MeterSquared
+)
