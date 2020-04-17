@@ -230,14 +230,9 @@ func (r *recordGridded) GridFactors(gi int) (
 // recordToGrid allocates the reciever to the specifed grid
 // without any spatial surrogate.
 func (sp *SpatialProcessor) recordToGrid(loc *Location, grid *GridDef) (gridSrg *sparse.SparseArray, coveredByGrid, inGrid bool, err error) {
-	// Otherwise, directly allocate emissions to grid.
-	gridLoc, err := loc.Reproject(grid.SR)
-	if err != nil {
-		return
-	}
 	var rows, cols []int
 	var fracs []float64
-	rows, cols, fracs, inGrid, coveredByGrid = grid.GetIndex(gridLoc)
+	rows, cols, fracs, inGrid, coveredByGrid = grid.GetIndex(loc.Geom)
 	if inGrid {
 		gridSrg = sparse.ZerosSparse(grid.Ny, grid.Nx)
 		// A point can be allocated to more than one grid cell if it lies

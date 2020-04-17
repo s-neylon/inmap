@@ -32,7 +32,9 @@ import (
 	"github.com/ctessum/geom"
 	"github.com/ctessum/geom/encoding/shp"
 	"github.com/ctessum/geom/index/rtree"
+	"github.com/ctessum/geom/proj"
 	"github.com/ctessum/requestcache/v2"
+	"github.com/golang/geo/s2"
 )
 
 type SrgSpec interface {
@@ -243,6 +245,11 @@ func (srg *SrgSpecSMOKE) InputShapes() (map[string]*Location, error) {
 	if err != nil {
 		return nil, err
 	}
+	ct, err := inputSR.NewTransform(longLatSR)
+	if err != nil {
+		panic(err)
+	}
+
 	inputData := make(map[string]*Location)
 	for {
 		g, fields, more := inputShp.DecodeRowFields(srg.dataAttribute())
@@ -251,17 +258,21 @@ func (srg *SrgSpecSMOKE) InputShapes() (map[string]*Location, error) {
 		}
 
 		inputID := fields[srg.DATAATTRIBUTE]
-		ggeom := g.(geom.Polygon)
+
+		g, err := g.Transform(ct)
+		if err != nil {
+			panic(err)
+		}
+		ggeom := geomToS2(g)
 
 		// Extend existing polygon if one already exists for this InputID
 		if _, ok := inputData[inputID]; !ok {
 			inputData[inputID] = &Location{
 				Geom: ggeom,
-				SR:   inputSR,
 				Name: srg.region().String() + inputID,
 			}
 		} else {
-			inputData[inputID].Geom = append(inputData[inputID].Geom.(geom.Polygon), ggeom...)
+			inputData[inputID].Geom = s2.CellUnionFromUnion(inputData[inputID].Geom, ggeom)
 		}
 	}
 	if inputShp.Error() != nil {
@@ -273,19 +284,6 @@ func (srg *SrgSpecSMOKE) InputShapes() (map[string]*Location, error) {
 // get surrogate shapes and weights. tol is a geometry simplification tolerance.
 func (srg *SrgSpecSMOKE) getSrgData(gridData *GridDef, inputLoc *Location, tol float64) (*rtree.Rtree, error) {
 	// Calculate the area of interest for our surrogate data.
-	inputShapeT, err := inputLoc.Reproject(gridData.SR)
-	if err != nil {
-		return nil, err
-	}
-	inputShapeBounds := inputShapeT.Bounds()
-	srgBounds := inputShapeBounds.Copy()
-	for _, cell := range gridData.Cells {
-		b := cell.Bounds()
-		if b.Overlaps(inputShapeBounds) {
-			srgBounds.Extend(b)
-		}
-	}
-
 	in := &readSrgDataSMOKEInput{gridData: gridData, tol: tol, srg: srg}
 	request := srg.cache.NewRequest(context.TODO(), in)
 	srgs, err := request.Result()
@@ -310,6 +308,45 @@ type readSrgDataOutput struct {
 	index *rtree.Rtree
 }
 
+var rc = &s2.RegionCoverer{MaxLevel: 24, MaxCells: 1000}
+
+func geomToS2(g geom.Geom) s2.CellUnion {
+	switch g.(type) {
+	case geom.LineString:
+		return lineStringToS2(g.(geom.LineString))
+	case geom.Point:
+		return pointToS2(g.(geom.Point))
+	case geom.Polygon:
+		return polygonToS2(g.(geom.Polygon))
+	default:
+		panic(fmt.Errorf("unsupported geometry type %T", g))
+	}
+}
+
+func pointToS2(p geom.Point) s2.CellUnion {
+	return rc.CellUnion(s2.PointFromLatLng(s2.LatLngFromDegrees(p.Y, p.X)))
+}
+
+func lineStringToS2(l geom.LineString) s2.CellUnion {
+	pts := make([]s2.LatLng, len(l))
+	for j, pt := range l {
+		pts[j] = s2.LatLngFromDegrees(pt.Y, pt.X)
+	}
+	return rc.CellUnion(s2.PolylineFromLatLngs(pts))
+}
+
+func polygonToS2(poly geom.Polygon) s2.CellUnion {
+	loops := make([]*s2.Loop, len(poly))
+	for i, path := range poly {
+		pts := make([]s2.Point, len(path))
+		for j, pt := range path {
+			pts[j] = s2.PointFromLatLng(s2.LatLngFromDegrees(pt.Y, pt.X))
+		}
+		loops[i] = s2.LoopFromPoints(pts)
+	}
+	return rc.CellUnion(s2.PolygonFromLoops(loops))
+}
+
 // Run returns all of the spatial surrogate information for this
 // surrogate definition.
 func (input *readSrgDataSMOKEInput) Run(ctx context.Context) (interface{}, error) {
@@ -327,7 +364,12 @@ func (input *readSrgDataSMOKEInput) Run(ctx context.Context) (interface{}, error
 		return nil, err
 	}
 
-	srgCT, err := srgSR.NewTransform(input.gridData.SR)
+	longLatSR, err := proj.Parse("+proj=longlat")
+	if err != nil {
+		return nil, err
+	}
+
+	srgCT, err := srgSR.NewTransform(longLatSR)
 	if err != nil {
 		return nil, err
 	}
@@ -346,7 +388,6 @@ func (input *readSrgDataSMOKEInput) Run(ctx context.Context) (interface{}, error
 	var data map[string]string
 	var keepFeature bool
 	var featureVal string
-	var size float64
 	var more bool
 	for {
 		recGeom, data, more = srgShp.DecodeRowFields(fieldNames...)
@@ -375,17 +416,11 @@ func (input *readSrgDataSMOKEInput) Run(ctx context.Context) (interface{}, error
 			}
 		}
 		if keepFeature && recGeom != nil {
-			srgH := new(srgHolder)
-			srgH.Geom, err = recGeom.Transform(srgCT)
+			llGeom, err := recGeom.Transform(srgCT)
 			if err != nil {
 				return nil, err
 			}
-			if input.tol > 0 {
-				switch srgH.Geom.(type) {
-				case geom.Simplifier:
-					srgH.Geom = srgH.Geom.(geom.Simplifier).Simplify(input.tol)
-				}
-			}
+			srgH := &srgHolder{Geom: polygonToS2(llGeom.(geom.Polygon))}
 			if len(srg.WeightColumns) != 0 {
 				weightval := 0.
 				for i, name := range srg.WeightColumns {
@@ -403,39 +438,7 @@ func (input *readSrgDataSMOKEInput) Run(ctx context.Context) (interface{}, error
 					}
 					weightval += v * srg.WeightFactors[i]
 				}
-				switch srgH.Geom.(type) {
-				case geom.Polygonal:
-					size = srgH.Geom.(geom.Polygonal).Area()
-					if size == 0. {
-						if input.tol > 0 {
-							// We probably simplified the shape down to zero area.
-							continue
-						} else {
-							// TODO: Is it okay for input shapes to have zero area? Probably....
-							continue
-							//err = fmt.Errorf("Area should not equal "+
-							//	"zero in %v", srg.WEIGHTSHAPEFILE)
-							//return srgData, err
-						}
-					} else if size < 0 {
-						panic(fmt.Errorf("negative area: %g, geom:%#v", size, srgH.Geom))
-					}
-					srgH.Weight = weightval / size
-				case geom.Linear:
-					size = srgH.Geom.(geom.Linear).Length()
-					if size == 0. {
-						err = fmt.Errorf("Length should not equal "+
-							"zero in %v", srg.WEIGHTSHAPEFILE)
-						return nil, err
-					}
-					srgH.Weight = weightval / size
-				case geom.Point:
-					srgH.Weight = weightval
-				default:
-					err = fmt.Errorf("aep: in file %s, unsupported geometry type %#v",
-						srg.WEIGHTSHAPEFILE, srgH.Geom)
-					return nil, err
-				}
+				srgH.Weight = weightval / srgH.Geom.ApproxArea()
 			} else {
 				srgH.Weight = 1.
 			}

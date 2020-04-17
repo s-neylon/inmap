@@ -64,12 +64,8 @@ func TestCreateSurrogates_osm(t *testing.T) {
 	if err := d.Error(); err != nil {
 		t.Fatal(err)
 	}
-	sr, err := d.SR()
-	if err != nil {
-		t.Fatal(err)
-	}
 
-	inputLoc := &Location{Geom: g, SR: sr, Name: "input1"}
+	inputLoc := &Location{Geom: geomToS2(g), Name: "input1"}
 
 	key := hash.Hash(inputLoc)
 	wantKey := "input1"
@@ -157,12 +153,8 @@ func TestCreateSurrogates_osmSrgCache(t *testing.T) {
 	if err := d.Error(); err != nil {
 		t.Fatal(err)
 	}
-	sr, err := d.SR()
-	if err != nil {
-		t.Fatal(err)
-	}
 
-	inputLoc := &Location{Geom: g, SR: sr, Name: "input1"}
+	inputLoc := &Location{Geom: geomToS2(g), Name: "input1"}
 
 	key := hash.Hash(inputLoc)
 	wantKey := "input1"
@@ -207,7 +199,7 @@ func TestCreateSurrogates_osmSrgCache(t *testing.T) {
 			poly[i][j] = geom.Point{X: pt.X + 0.00000001, Y: pt.Y}
 		}
 	}
-	inputLoc = &Location{Geom: poly, SR: sr, Name: "input2"}
+	inputLoc = &Location{Geom: geomToS2(poly), Name: "input2"}
 
 	key = hash.Hash(inputLoc)
 	wantKey = "input2"

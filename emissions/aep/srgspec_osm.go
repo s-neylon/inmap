@@ -29,7 +29,6 @@ import (
 	"github.com/ctessum/geom"
 	"github.com/ctessum/geom/encoding/osm"
 	"github.com/ctessum/geom/index/rtree"
-	"github.com/ctessum/geom/proj"
 	"github.com/ctessum/requestcache/v2"
 )
 
@@ -92,11 +91,7 @@ func (srg *SrgSpecOSM) mergeMultipliers() []float64    { return srg.MergeMultipl
 // surrogate definition and location, where tol is tolerance for geometry simplification.
 func (srg *SrgSpecOSM) getSrgData(gridData *GridDef, inputLoc *Location, tol float64) (*rtree.Rtree, error) {
 	// Calculate the area of interest for our surrogate data.
-	inputShapeT, err := inputLoc.Reproject(gridData.SR)
-	if err != nil {
-		return nil, err
-	}
-	inputShapeBounds := inputShapeT.Bounds()
+	inputShapeBounds := inputLoc.Bounds()
 	srgBounds := inputShapeBounds.Copy()
 	for _, cell := range gridData.Cells {
 		b := cell.Bounds()
@@ -132,16 +127,6 @@ func (input *readSrgDataOSMInput) Run(ctx context.Context) (interface{}, error) 
 	srg := input.srg
 	log.Printf("processing surrogate `%s` spatial data", srg.Name)
 
-	srgSR, err := proj.Parse("+proj=longlat")
-	if err != nil {
-		panic(err)
-	}
-
-	srgCT, err := srgSR.NewTransform(input.gridData.SR)
-	if err != nil {
-		return nil, err
-	}
-
 	data, err := osm.ExtractFile(context.Background(), os.ExpandEnv(srg.OSMFile), osm.KeepTags(srg.Tags))
 	if err != nil {
 		return nil, fmt.Errorf("aep: extracting OSM spatial surrogate data for tags %v: %v", srg.Tags, err)
@@ -165,18 +150,8 @@ func (input *readSrgDataOSMInput) Run(ctx context.Context) (interface{}, error) 
 		if g == nil {
 			continue // ignore geometry that is not the dominant type.
 		}
-		g, err = g.Transform(srgCT)
-		if err != nil {
-			return nil, fmt.Errorf("aep: processing OSM spatial surrogate data: %v", err)
-		}
-		if input.tol > 0 {
-			switch gs := g.(type) {
-			case geom.Simplifier:
-				g = gs.Simplify(input.tol)
-			}
-		}
 		srgData := &srgHolder{
-			Geom:   g,
+			Geom:   geomToS2(g),
 			Weight: 1,
 		}
 		srgs.srgs = append(srgs.srgs, srgData)

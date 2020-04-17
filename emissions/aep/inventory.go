@@ -33,6 +33,7 @@ import (
 	"github.com/ctessum/geom/proj"
 	"github.com/ctessum/unit"
 	"github.com/ctessum/unit/badunit"
+	"github.com/golang/geo/s2"
 )
 
 const (
@@ -47,9 +48,16 @@ func init() {
 }
 
 type Location struct {
-	geom.Geom
-	SR   *proj.SR
+	Geom s2.CellUnion
 	Name string
+}
+
+func (l *Location) Bounds() *geom.Bounds {
+	b := l.Geom.RectBound()
+	return &geom.Bounds{
+		Min: geom.Point{X: b.Lng.Lo, Y: b.Lat.Lo},
+		Max: geom.Point{X: b.Lng.Hi, Y: b.Lat.Hi},
+	}
 }
 
 func (l *Location) String() string {
@@ -57,14 +65,6 @@ func (l *Location) String() string {
 		panic("location must have name")
 	}
 	return l.Name
-}
-
-func (l *Location) Reproject(sr *proj.SR) (geom.Geom, error) {
-	ct, err := l.SR.NewTransform(sr)
-	if err != nil {
-		return nil, err
-	}
-	return l.Geom.Transform(ct)
 }
 
 // A Record holds data from a parsed emissions inventory record.
@@ -171,9 +171,27 @@ type basicPolygonRecord struct {
 // nil because this is not a point source.
 func (r *basicPolygonRecord) PointData() *PointSourceData { return nil }
 
+var longLatSR *proj.SR
+
+func init() {
+	var err error
+	longLatSR, err = proj.Parse("+proj=longlat")
+	if err != nil {
+		panic(err)
+	}
+}
+
 // Location returns the polygon representing the location of emissions.
 func (r *basicPolygonRecord) Location() *Location {
-	return &Location{Geom: r.Polygonal, SR: r.SR, Name: r.LocationName}
+	srgCT, err := r.SR.NewTransform(longLatSR)
+	if err != nil {
+		panic(err)
+	}
+	g, err := r.Polygonal.Transform(srgCT)
+	if err != nil {
+		panic(err)
+	}
+	return &Location{Geom: geomToS2(g), Name: r.LocationName}
 }
 
 type supplementalPointRecord struct {

@@ -23,11 +23,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"math"
 
 	"github.com/ctessum/geom"
 	"github.com/ctessum/geom/encoding/shp"
 	"github.com/ctessum/geom/index/rtree"
 	"github.com/ctessum/geom/proj"
+	"github.com/golang/geo/s2"
 	goshp "github.com/jonas-p/go-shp"
 )
 
@@ -43,7 +45,7 @@ type GridDef struct {
 	X0, Y0        float64
 	Cells         []*GridCell
 	SR            *proj.SR
-	Extent        geom.Polygon
+	Extent        s2.CellUnion
 	IrregularGrid bool // whether the grid is a regular grid
 	rtree         *rtree.Rtree
 }
@@ -51,23 +53,33 @@ type GridDef struct {
 // GridCell defines an individual cell in a grid.
 type GridCell struct {
 	geom.Polygonal
+	s2.CellUnion
 	Row, Col int
 	Weight   float64
 	TimeZone string
+}
+
+// Bounds returns the grid cell bounds in lat-lon coordinates.
+func (c *GridCell) Bounds() *geom.Bounds {
+	b := c.CellUnion.RectBound()
+	return &geom.Bounds{
+		Min: geom.Point{X: b.Lng.Lo, Y: b.Lat.Lo},
+		Max: geom.Point{X: b.Lng.Hi, Y: b.Lat.Hi},
+	}
 }
 
 // Copy copies a grid cell.
 func (c *GridCell) Copy() *GridCell {
 	o := new(GridCell)
 	o.Polygonal = c.Polygonal
+	o.CellUnion = c.CellUnion
 	o.Row, o.Col = c.Row, c.Col
 	return o
 }
 
 // NewGridRegular creates a new regular grid, where all grid cells are the
 // same size.
-func NewGridRegular(Name string, Nx, Ny int, Dx, Dy, X0, Y0 float64,
-	sr *proj.SR) (grid *GridDef) {
+func NewGridRegular(Name string, Nx, Ny int, Dx, Dy, X0, Y0 float64, sr *proj.SR) (grid *GridDef) {
 	grid = new(GridDef)
 	grid.Name = Name
 	grid.Nx, grid.Ny = Nx, Ny
@@ -77,6 +89,15 @@ func NewGridRegular(Name string, Nx, Ny int, Dx, Dy, X0, Y0 float64,
 	grid.rtree = rtree.NewTree(25, 50)
 	// Create geometry
 	grid.Cells = make([]*GridCell, grid.Nx*grid.Ny)
+
+	llCT, err := grid.SR.NewTransform(longLatSR)
+	if err != nil {
+		panic(err)
+	}
+
+	cu := rc.CellUnion(s2.FullCap())
+	fmt.Println(cu.ApproxArea() * 6378000 * 6378000)
+
 	i := 0
 	for iy := 0; iy < grid.Ny; iy++ {
 		for ix := 0; ix < grid.Nx; ix++ {
@@ -87,15 +108,24 @@ func NewGridRegular(Name string, Nx, Ny int, Dx, Dy, X0, Y0 float64,
 			cell.Polygonal = geom.Polygon([]geom.Path{{
 				{X: x, Y: y}, {X: x + grid.Dx, Y: y},
 				{X: x + grid.Dx, Y: y + grid.Dy}, {X: x, Y: y + grid.Dy}, {X: x, Y: y}}})
+
+			cI, err := cell.Polygonal.Transform(llCT)
+			if err != nil {
+				panic(err)
+			}
+			cell.CellUnion = geomToS2(cI)
+
+			fmt.Println(math.Sqrt(cell.CellUnion.ApproxArea() * 6378000 * 6378000))
+
 			grid.rtree.Insert(cell)
 			grid.Cells[i] = cell
 			i++
 		}
 	}
-	grid.Extent = geom.Polygon([]geom.Path{{{X: X0, Y: Y0},
+	grid.Extent = geomToS2(geom.Polygon([]geom.Path{{{X: X0, Y: Y0},
 		{X: X0 + Dx*float64(Nx), Y: Y0},
 		{X: X0 + Dx*float64(Nx), Y: Y0 + Dy*float64(Ny)},
-		{X: X0, Y: Y0 + Dy*float64(Ny)}, {X: X0, Y: Y0}}})
+		{X: X0, Y: Y0 + Dy*float64(Ny)}, {X: X0, Y: Y0}}}))
 	return
 }
 
@@ -116,6 +146,12 @@ func NewGridIrregular(Name string, g []geom.Polygonal, inputSR, outputSR *proj.S
 	if err != nil {
 		return
 	}
+
+	llCT, err := grid.SR.NewTransform(longLatSR)
+	if err != nil {
+		panic(err)
+	}
+
 	grid.rtree = rtree.NewTree(25, 50)
 	for i, gg := range g {
 		cell := new(GridCell)
@@ -125,14 +161,23 @@ func NewGridIrregular(Name string, g []geom.Polygonal, inputSR, outputSR *proj.S
 			return
 		}
 		cell.Polygonal = gg2.(geom.Polygonal)
+
+		cI, err := cell.Polygonal.Transform(llCT)
+		if err != nil {
+			panic(err)
+		}
+		cell.CellUnion = geomToS2(cI)
+
 		cell.Row = i
 		grid.Cells[i] = cell
 
-		for _, p := range cell.Polygonal.Polygons() {
-			grid.Extent = append(grid.Extent, p...)
-		}
 		grid.rtree.Insert(cell)
 	}
+	cus := make([]s2.CellUnion, len(grid.Cells))
+	for i, c := range grid.Cells {
+		cus[i] = c.CellUnion
+	}
+	grid.Extent = s2.CellUnionFromUnion(cus...)
 	return
 }
 
@@ -145,76 +190,31 @@ func NewGridIrregular(Name string, g []geom.Polygonal, inputSR, outputSR *proj.S
 // there will be only one row and column for each point, but it the point
 // lies on a shared edge among multiple grid cells, all of the overlapping
 // grid cells will be returned.
-func (grid *GridDef) GetIndex(g geom.Geom) (rows, cols []int, fracs []float64, inGrid, coveredByGrid bool) {
-	switch g.(type) {
-	case geom.Point:
-		p := g.(geom.Point)
-		for _, cI := range grid.rtree.SearchIntersect(p.Bounds()) {
-			c := cI.(*GridCell)
-			if grid.IrregularGrid && p.Within(c.Polygonal) == geom.Outside {
-				continue
-			}
-			rows = append(rows, c.Row)
-			cols = append(cols, c.Col)
-		}
-		if len(rows) > 0 {
-			coveredByGrid = true
-			inGrid = true
-		}
-		fracs = make([]float64, len(rows))
-		for i := range rows {
-			fracs[i] = 1.0 / float64(len(rows))
-		}
-		return
-	case geom.LineString:
-		l := g.(geom.LineString)
-		length := l.Length()
-		var lengthSum float64
-		for _, cI := range grid.rtree.SearchIntersect(l.Bounds()) {
-			c := cI.(*GridCell)
-			iSect := l.Clip(c)
-			if iSect == nil {
-				continue
-			}
-			cellLength := iSect.Length()
-			fracs = append(fracs, cellLength/length)
-			lengthSum += cellLength
-			rows = append(rows, c.Row)
-			cols = append(cols, c.Col)
-		}
-		if len(rows) > 0 {
-			inGrid = true
-		}
-		if lengthSum/length > 0.9999 {
-			coveredByGrid = true
-		}
-		return
-	case geom.Polygonal:
-		p := g.(geom.Polygonal)
-		area := p.Area()
-		var areaSum float64
-		for _, cI := range grid.rtree.SearchIntersect(p.Bounds()) {
-			c := cI.(*GridCell)
-			iSect := p.Intersection(c.Polygonal)
-			if iSect == nil {
-				continue
-			}
-			cellArea := iSect.Area()
-			fracs = append(fracs, cellArea/area)
-			areaSum += cellArea
-			rows = append(rows, c.Row)
-			cols = append(cols, c.Col)
-		}
-		if len(rows) > 0 {
-			inGrid = true
-		}
-		if areaSum/area > 0.9999 {
-			coveredByGrid = true
-		}
-		return
-	default:
-		panic(fmt.Errorf("invalid type %T", g))
+func (grid *GridDef) GetIndex(cu s2.CellUnion) (rows, cols []int, fracs []float64, inGrid, coveredByGrid bool) {
+	rb := cu.RectBound()
+	b := &geom.Bounds{
+		Min: geom.Point{X: rb.Lng.Lo, Y: rb.Lat.Lo},
+		Max: geom.Point{X: rb.Lng.Hi, Y: rb.Lat.Hi},
 	}
+
+	area := cu.ApproxArea()
+	var areaSum float64
+	for _, cI := range grid.rtree.SearchIntersect(b) {
+		c := cI.(*GridCell)
+		isect := s2.CellUnionFromIntersection(c.CellUnion, cu)
+		cellArea := isect.ApproxArea()
+		fracs = append(fracs, cellArea/area)
+		areaSum += cellArea
+		rows = append(rows, c.Row)
+		cols = append(cols, c.Col)
+	}
+	if len(rows) > 0 {
+		inGrid = true
+	}
+	if areaSum/area > 0.9999 {
+		coveredByGrid = true
+	}
+	return
 }
 
 // WriteToShp writes the grid definition to a shapefile in directory outdir.

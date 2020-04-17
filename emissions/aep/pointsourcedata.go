@@ -184,7 +184,15 @@ func (r *PointSourceData) StackParameters() (StackHeight, StackDiameter, StackTe
 }
 
 func (r *PointSourceData) Location() *Location {
-	return &Location{Geom: r.Point, SR: r.SR, Name: fmt.Sprintf("%v", r.Point)}
+	srgCT, err := r.SR.NewTransform(longLatSR)
+	if err != nil {
+		panic(err)
+	}
+	g, err := r.Point.Transform(srgCT)
+	if err != nil {
+		panic(err)
+	}
+	return &Location{Geom: geomToS2(g), Name: fmt.Sprintf("%v", r.Point)}
 }
 
 // GroundLevel returns true if the receiver emissions are

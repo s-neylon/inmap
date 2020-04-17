@@ -31,7 +31,9 @@ import (
 	"github.com/ctessum/geom"
 	"github.com/ctessum/geom/encoding/shp"
 	"github.com/ctessum/geom/index/rtree"
+	"github.com/ctessum/geom/proj"
 	"github.com/ctessum/sparse"
+	"github.com/golang/geo/s2"
 	"github.com/spatialmodel/inmap/internal/hash"
 )
 
@@ -101,8 +103,21 @@ type GriddedSrgData struct {
 
 type srgHolder struct {
 	Weight float64
-	geom.Geom
+	Geom   s2.CellUnion
 }
+
+func (s *srgHolder) Bounds() *geom.Bounds {
+	b := s.Geom.RectBound()
+	return &geom.Bounds{
+		Min: geom.Point{X: b.Lng.Lo, Y: b.Lat.Lo},
+		Max: geom.Point{X: b.Lng.Hi, Y: b.Lat.Hi},
+	}
+}
+
+func (s *srgHolder) Similar(geom.Geom, float64) bool               { panic("not implemented") }
+func (s *srgHolder) Transform(proj.Transformer) (geom.Geom, error) { panic("not implemented") }
+func (s *srgHolder) Len() int                                      { panic("not implemented") }
+func (s *srgHolder) Points() func() geom.Point                     { panic("not implemented") }
 
 // SurrogateFilter can be used to limit which rows in a shapefile are
 // used to create a gridding surrogate.
@@ -284,19 +299,13 @@ func (s *srgGenWorker) Initialize(data *srgGenWorkerInitData) error {
 func (s *srgGenWorker) Calculate(data, result *GriddedSrgData) (err error) {
 	result.InputLocation = data.InputLocation
 
-	inputGeom, err := data.InputLocation.Reproject(s.GridCells.SR)
-	if err != nil {
-		return err
-	}
-
 	// Figure out if inputShape is completely within the grid
-	within := inputGeom.(geom.Withiner).Within(s.GridCells.Extent)
-	result.CoveredByGrid = within == geom.Inside || within == geom.OnEdge
+	result.CoveredByGrid = s.GridCells.Extent.Contains(data.InputLocation.Geom)
 
 	var GridCells []*GridCell
 	var InputShapeSrgs []*srgHolder
 	GridCells, InputShapeSrgs, data.SingleShapeSrgWeight, err =
-		s.intersections1(data, s.surrogates, inputGeom.(geom.Polygonal))
+		s.intersections1(data, s.surrogates, data.InputLocation)
 	if err != nil {
 		return
 	}
@@ -313,7 +322,7 @@ func (s *srgGenWorker) Calculate(data, result *GriddedSrgData) (err error) {
 // Calculate the intersections between the grid cells and the input shape,
 // and between the surrogate shapes and the input shape
 func (s *srgGenWorker) intersections1(
-	data *GriddedSrgData, surrogates *rtree.Rtree, inputGeom geom.Polygonal) (
+	data *GriddedSrgData, surrogates *rtree.Rtree, inputLocation *Location) (
 	GridCells []*GridCell, srgs []*srgHolder,
 	singleShapeSrgWeight float64, err error) {
 
@@ -322,7 +331,7 @@ func (s *srgGenWorker) intersections1(
 	var wg sync.WaitGroup
 
 	// Figure out which grid cells might intersect with the input shape
-	inputBounds := inputGeom.Bounds()
+	inputBounds := inputLocation.Bounds()
 	GridCells = make([]*GridCell, 0, 30)
 	wg.Add(nprocs)
 	for procnum := 0; procnum < nprocs; procnum++ {
@@ -331,7 +340,7 @@ func (s *srgGenWorker) intersections1(
 			var intersects bool
 			for i := procnum; i < len(s.GridCells.Cells); i += nprocs {
 				cell := s.GridCells.Cells[i]
-				intersects = cell.Polygonal.Bounds().Overlaps(inputBounds)
+				intersects = cell.Bounds().Overlaps(inputBounds)
 				if intersects {
 					mu.Lock()
 					GridCells = append(GridCells, cell)
@@ -353,8 +362,8 @@ func (s *srgGenWorker) intersections1(
 		go func(procnum int) {
 			for i := procnum; i < len(srgsWithinBounds); i += nprocs {
 				srg := srgsWithinBounds[i].(*srgHolder)
-				intersection := intersection(srg.Geom, inputGeom)
-				if intersection == nil {
+				intersection := s2.CellUnionFromIntersection(srg.Geom, inputLocation.Geom)
+				if len(intersection) == 0 {
 					continue
 				}
 				mu.Lock()
@@ -362,7 +371,7 @@ func (s *srgGenWorker) intersections1(
 					Geom: intersection})
 				// Add the individual surrogate weight to the total
 				// weight for the input shape.
-				singleShapeSrgWeight += geomWeight(srg.Weight, intersection)
+				singleShapeSrgWeight += srg.Weight * intersection.ApproxArea()
 				mu.Unlock()
 			}
 			errChan <- nil
@@ -374,46 +383,6 @@ func (s *srgGenWorker) intersections1(
 		}
 	}
 	return
-}
-
-// intersection calculates the intersection of g and poly
-func intersection(g geom.Geom, poly geom.Polygonal) geom.Geom {
-	switch g.(type) {
-	case geom.Point, geom.MultiPoint:
-		o := make(geom.MultiPoint, 0, g.Len())
-		ptsF := g.Points()
-		for i := 0; i < g.Len(); i++ {
-			pt := ptsF()
-			in := pt.Within(poly)
-			if in == geom.Inside || in == geom.OnEdge {
-				o = append(o, pt)
-			}
-		}
-		if len(o) > 0 {
-			return o
-		}
-		return nil
-	case geom.Polygonal:
-		return g.(geom.Polygonal).Intersection(poly)
-	case geom.Linear:
-		return g.(geom.Linear).Clip(poly)
-	default:
-		panic(fmt.Errorf("unsupported intersection geometry type %#v", g))
-	}
-}
-
-// geomWeight multiplies w by a relevant property of g.
-func geomWeight(w float64, g geom.Geom) float64 {
-	switch g.(type) {
-	case geom.Polygonal:
-		return w * g.(geom.Polygonal).Area()
-	case geom.LineString, geom.MultiLineString:
-		return w * g.(geom.Linear).Length()
-	case geom.Point, geom.MultiPoint:
-		return w * float64(g.Len())
-	default:
-		panic(fmt.Errorf("invalid geometry type %T", g))
-	}
 }
 
 // Given the surrogate shapes that are within an input shape,
@@ -433,12 +402,11 @@ func (s *srgGenWorker) intersections2(data *GriddedSrgData,
 			for i := procnum; i < len(GridCells); i += nprocs {
 				cell := GridCells[i].Copy()
 				for _, srg := range InputShapeSrgs {
-					intersection := intersection(srg.Geom, cell.Polygonal)
-					if intersection == nil {
+					intersection := s2.CellUnionFromIntersection(srg.Geom, cell.CellUnion)
+					if len(intersection) == 0 {
 						continue
 					}
-					cell.Weight += geomWeight(srg.Weight, intersection) /
-						data.SingleShapeSrgWeight
+					cell.Weight += srg.Weight * intersection.ApproxArea() / data.SingleShapeSrgWeight
 				}
 				mu.Lock()
 				if cell.Weight > 0. {

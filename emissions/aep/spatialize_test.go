@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/ctessum/geom"
-	"github.com/ctessum/geom/op"
 	"github.com/ctessum/geom/proj"
 	"github.com/ctessum/unit"
 	"github.com/gonum/floats"
@@ -67,7 +66,7 @@ var coveredByGrid = map[string]bool{
 
 func TestReadSrgSpec(t *testing.T) {
 	r := strings.NewReader(srgSpecFileString)
-	srgSpecs, err := ReadSrgSpecSMOKE(r, "testdata", true, "", 1)
+	srgSpecs, err := ReadSrgSpecSMOKE(r, "testdata", true, "", 100)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,9 +139,13 @@ func TestNewGridRegular(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	const gridArea = 6.4e9
-	if op.Area(grid.Extent) != gridArea {
-		t.Errorf("grid extent = %g, want %g", op.Area(grid.Extent), gridArea)
+	const (
+		wantGridArea = 6.4e9
+		earthRadius  = 6378000
+	)
+	gridArea := grid.Extent.ApproxArea() * earthRadius * earthRadius
+	if gridArea != wantGridArea {
+		t.Errorf("grid extent = %g, want %g", gridArea, wantGridArea)
 	}
 	cellResult := []*GridCell{
 		&GridCell{Polygonal: geom.Polygon{{geom.Point{X: 1.87e+06, Y: 280000}, geom.Point{X: 1.89e+06, Y: 280000}, geom.Point{X: 1.89e+06, Y: 300000}, geom.Point{X: 1.87e+06, Y: 300000}, geom.Point{X: 1.87e+06, Y: 280000}}}, Row: 0, Col: 0, Weight: 0},
@@ -174,7 +177,7 @@ func TestCreateSurrogates(t *testing.T) {
 		t.Error(err)
 	}
 	r := strings.NewReader(srgSpecFileString)
-	srgSpecs, err := ReadSrgSpecSMOKE(r, "testdata", true, "", 1)
+	srgSpecs, err := ReadSrgSpecSMOKE(r, "testdata", true, "", 100)
 	if err != nil {
 		t.Error(err)
 	}
@@ -275,7 +278,7 @@ func TestSpatializeRecord(t *testing.T) {
 		t.Error(err)
 	}
 	r := strings.NewReader(srgSpecFileString)
-	srgSpecs, err := ReadSrgSpecSMOKE(r, "testdata", true, "", 1)
+	srgSpecs, err := ReadSrgSpecSMOKE(r, "testdata", true, "", 100)
 	if err != nil {
 		t.Error(err)
 	}

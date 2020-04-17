@@ -22,6 +22,7 @@ require (
 	github.com/evanphx/json-patch v4.1.0+incompatible // indirect
 	github.com/go-humble/detect v0.1.2 // indirect
 	github.com/go-humble/router v0.5.0
+	github.com/golang/geo v0.0.0-20200319012246-673a6f80352d
 	github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6
 	github.com/golang/protobuf v1.3.2
 	github.com/gonum/floats v0.0.0-20181209220543-c233463c7e82
