@@ -32,27 +32,29 @@ func (s *SpatialEIO) loadSCCMap(sccMapFile string) error {
 	}
 	sheet := f.Sheets[0]
 
+
 	s.sccIndex = make(map[slca.SCC]int)
 	s.SCCs = make([]slca.SCC, 0, len(sheet.Rows)-1)
-	s.sccMap = make([][]int, 0, len(sheet.Rows)-1)
+	s.SCCMap = make([][]int, 0, len(sheet.Rows)-1)
+	s.IndustryToSCCMap = make([][]int, len(s.industries))
 	s.SpatialRefs = make([]slca.SpatialRef, 0, len(sheet.Rows)-1)
-	for i := 0; i < len(sheet.Rows)-1; i++ {
-		r := sheet.Rows[i+1]
+	for sccRow := 0; sccRow < len(sheet.Rows)-1; sccRow++ {
+		r := sheet.Rows[sccRow+1]
 		if len(r.Cells) == 0 {
 			continue
 		}
 		scc := slca.SCC(r.Cells[0].String())
 		s.SCCs = append(s.SCCs, scc)
-		s.sccIndex[scc] = i
+		s.sccIndex[scc] = sccRow
 
 		s.SpatialRefs = append(s.SpatialRefs, slca.SpatialRef{
-			SCCs:            []slca.SCC{s.SCCs[i]},
+			SCCs:            []slca.SCC{s.SCCs[sccRow]},
 			EmisYear:        -9,
 			Type:            slca.Stationary,
 			NoNormalization: true,
 		})
 
-		s.sccMap = append(s.sccMap, []int{})
+		s.SCCMap = append(s.SCCMap, []int{})
 		for j := 2; j < len(r.Cells); j++ { // Skip first two columns.
 			industry := r.Cells[j].String()
 			if industry == "" {
@@ -62,7 +64,12 @@ func (s *SpatialEIO) loadSCCMap(sccMapFile string) error {
 			if err != nil {
 				return fmt.Errorf("bea: loading SCC map: %v", err)
 			}
-			s.sccMap[i] = append(s.sccMap[i], ioRow)
+			s.SCCMap[sccRow] = append(s.SCCMap[sccRow], ioRow)
+
+			if s.IndustryToSCCMap[ioRow] == nil {
+				s.IndustryToSCCMap[ioRow] = []int{}
+			}
+			s.IndustryToSCCMap[ioRow] = append(s.IndustryToSCCMap[ioRow], sccRow)
 		}
 	}
 	return nil
@@ -78,7 +85,7 @@ func (s *SpatialEIO) requirementsSCC(ioR *mat.Dense) (*mat.Dense, error) {
 	rows := len(s.SCCs)
 	m := mat.NewDense(rows, cols, nil)
 	for i := 0; i < rows; i++ {
-		for _, ioRow := range s.sccMap[i] {
+		for _, ioRow := range s.SCCMap[i] {
 			for c := 0; c < cols; c++ {
 				m.Set(i, c, m.At(i, c)+ioR.At(ioRow, c))
 			}
