@@ -37,12 +37,12 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/build/autocertcache"
 
-	"github.com/spatialmodel/inmap/cloud"
-	"github.com/spatialmodel/inmap/emissions/slca"
-	"github.com/spatialmodel/inmap/emissions/slca/eieio"
-	"github.com/spatialmodel/inmap/emissions/slca/greet"
-	"github.com/spatialmodel/inmap/epi"
-	"github.com/spatialmodel/inmap/inmaputil"
+	"github.com/evookelj/inmap/cloud"
+	"github.com/evookelj/inmap/emissions/slca"
+	"github.com/evookelj/inmap/emissions/slca/eieio"
+	"github.com/evookelj/inmap/emissions/slca/greet"
+	"github.com/evookelj/inmap/epi"
+	"github.com/evookelj/inmap/inmaputil"
 	"golang.org/x/crypto/acme/autocert"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -229,7 +229,7 @@ func main() {
 	}
 }
 
-// Copied from github.com/spatialmodel/inmap/emissions/slca/greet/cst_test.go
+// Copied from github.com/evookelj/inmap/emissions/slca/greet/cst_test.go
 func initCSTDB(c *slca.CSTConfig) (*greet.DB, *slca.DB) {
 	dir := filepath.Join(os.ExpandEnv(*staticRoot), "emissions", "slca")
 	f1, err := os.Open(dir + "/greet/default.greet")

@@ -33,7 +33,7 @@ import (
 
 	"github.com/ctessum/cdf"
 	"github.com/ctessum/sparse"
-	"github.com/spatialmodel/inmap/emissions/aep"
+	"github.com/evookelj/inmap/emissions/aep"
 
 	"github.com/ctessum/geom"
 	"github.com/ctessum/geom/encoding/shp"

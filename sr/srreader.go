@@ -32,8 +32,8 @@ import (
 	"github.com/ctessum/geom/proj"
 	"github.com/ctessum/requestcache"
 	"github.com/gonum/floats"
-	"github.com/spatialmodel/inmap"
-	"github.com/spatialmodel/inmap/science/chem/simplechem"
+	"github.com/evookelj/inmap"
+	"github.com/evookelj/inmap/science/chem/simplechem"
 )
 
 // Reader allows the interaction with a NetCDF-formatted source-receptor (SR) database.

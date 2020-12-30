@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/gonum/floats"
-	"github.com/spatialmodel/inmap/emissions/slca/eieio/eieiorpc"
+	"github.com/evookelj/inmap/emissions/slca/eieio/eieiorpc"
 )
 
 func TestLoadFinalDemand(t *testing.T) {

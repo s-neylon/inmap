@@ -30,7 +30,7 @@ import (
 	"github.com/ctessum/geom/encoding/shp"
 	"github.com/ctessum/geom/proj"
 	"github.com/gonum/floats"
-	"github.com/spatialmodel/inmap/internal/hash"
+	"github.com/evookelj/inmap/internal/hash"
 )
 
 func TestCreateSurrogates_osm(t *testing.T) {

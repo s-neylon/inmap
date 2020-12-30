@@ -29,8 +29,8 @@ import (
 	"strings"
 
 	"github.com/lnashier/viper"
-	"github.com/spatialmodel/inmap"
-	"github.com/spatialmodel/inmap/cloud/cloudrpc"
+	"github.com/evookelj/inmap"
+	"github.com/evookelj/inmap/cloud/cloudrpc"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )

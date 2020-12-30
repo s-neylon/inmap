@@ -27,10 +27,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/spatialmodel/inmap"
-	"github.com/spatialmodel/inmap/cloud"
-	"github.com/spatialmodel/inmap/cloud/cloudrpc"
-	"github.com/spatialmodel/inmap/inmaputil"
+	"github.com/evookelj/inmap"
+	"github.com/evookelj/inmap/cloud"
+	"github.com/evookelj/inmap/cloud/cloudrpc"
+	"github.com/evookelj/inmap/inmaputil"
 )
 
 // Set up directory location for configuration files.

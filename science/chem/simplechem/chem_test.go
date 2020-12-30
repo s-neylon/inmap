@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"github.com/ctessum/geom"
-	"github.com/spatialmodel/inmap"
+	"github.com/evookelj/inmap"
 )
 
 const E = 1000000. // emissions

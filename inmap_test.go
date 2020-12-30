@@ -25,8 +25,8 @@ import (
 
 	"github.com/ctessum/geom"
 	"github.com/gonum/floats"
-	"github.com/spatialmodel/inmap"
-	"github.com/spatialmodel/inmap/science/chem/simplechem"
+	"github.com/evookelj/inmap"
+	"github.com/evookelj/inmap/science/chem/simplechem"
 )
 
 const E = 1000000. // emissions

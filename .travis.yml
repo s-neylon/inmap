@@ -16,7 +16,7 @@ install:
 - go install ./cmd/inmap
 script:
 - export INMAP_ROOT_DIR=${PWD}
-- overalls -project=github.com/spatialmodel/inmap -covermode=count -- -short
+- overalls -project=github.com/evookelj/inmap -covermode=count -- -short
 - echo $COVERALLS_TOKEN
 - goveralls -coverprofile=overalls.coverprofile -service=travis-ci -repotoken $COVERALLS_TOKEN
 

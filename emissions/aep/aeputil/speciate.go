@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/ctessum/unit"
-	"github.com/spatialmodel/inmap/emissions/aep"
+	"github.com/evookelj/inmap/emissions/aep"
 )
 
 // SpeciateConfig holds speciation configuration information.

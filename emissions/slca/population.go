@@ -33,8 +33,8 @@ import (
 	"github.com/ctessum/geom/index/rtree"
 	"github.com/ctessum/geom/proj"
 	"github.com/ctessum/requestcache"
-	"github.com/spatialmodel/inmap/emissions/slca/eieio/eieiorpc"
-	"github.com/spatialmodel/inmap/epi"
+	"github.com/evookelj/inmap/emissions/slca/eieio/eieiorpc"
+	"github.com/evookelj/inmap/epi"
 )
 
 func init() {

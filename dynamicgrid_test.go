@@ -24,8 +24,8 @@ import (
 	"testing"
 
 	"github.com/ctessum/geom"
-	"github.com/spatialmodel/inmap"
-	"github.com/spatialmodel/inmap/science/chem/simplechem"
+	"github.com/evookelj/inmap"
+	"github.com/evookelj/inmap/science/chem/simplechem"
 )
 
 func TestDynamicGrid(t *testing.T) {

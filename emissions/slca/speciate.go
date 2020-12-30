@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	"github.com/ctessum/unit"
-	"github.com/spatialmodel/inmap/emissions/aep"
+	"github.com/evookelj/inmap/emissions/aep"
 )
 
 // Speciate returns a chemically speciated copy of r.

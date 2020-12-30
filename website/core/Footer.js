@@ -40,7 +40,7 @@ class Footer extends React.Component {
             <a href={'https://scholar.google.com/scholar?cites=13697507566681577142&as_sdt=5,48&sciodt=0,48&hl=en'}>
               Papers
             </a>
-            <a href={'https://godoc.org/github.com/spatialmodel/inmap'}>
+            <a href={'https://godoc.org/github.com/evookelj/inmap'}>
               API Reference
             </a>
           </div>
@@ -59,7 +59,7 @@ class Footer extends React.Component {
           <div>
             <h5>More</h5>
             <a href={`${this.props.config.baseUrl}blog`}>Blog</a>
-            <a href="https://github.com/spatialmodel/inmap">GitHub</a>
+            <a href="https://github.com/evookelj/inmap">GitHub</a>
             <a
               className="github-button"
               href={this.props.config.repoUrl}

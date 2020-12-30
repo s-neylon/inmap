@@ -26,9 +26,9 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
-	"github.com/spatialmodel/inmap"
-	"github.com/spatialmodel/inmap/cloud"
-	"github.com/spatialmodel/inmap/cloud/cloudrpc"
+	"github.com/evookelj/inmap"
+	"github.com/evookelj/inmap/cloud"
+	"github.com/evookelj/inmap/cloud/cloudrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

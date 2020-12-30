@@ -21,9 +21,9 @@ package emepwetdep_test
 import (
 	"testing"
 
-	"github.com/spatialmodel/inmap"
-	"github.com/spatialmodel/inmap/science/chem/simplechem"
-	"github.com/spatialmodel/inmap/science/wetdep/emepwetdep"
+	"github.com/evookelj/inmap"
+	"github.com/evookelj/inmap/science/chem/simplechem"
+	"github.com/evookelj/inmap/science/wetdep/emepwetdep"
 )
 
 // Indicies of individual pollutants in arrays.

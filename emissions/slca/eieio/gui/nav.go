@@ -65,7 +65,7 @@ func (n *Navigator) Render() vecty.ComponentOrHTML {
 						elem.Anchor(vecty.Markup(prop.Href("#")), vecty.Text("EIEIO")),
 					),
 					elem.ListItem(
-						elem.Anchor(vecty.Markup(prop.Href("https://godoc.org/github.com/spatialmodel/inmap")), vecty.Text("API")),
+						elem.Anchor(vecty.Markup(prop.Href("https://godoc.org/github.com/evookelj/inmap")), vecty.Text("API")),
 					),
 					elem.ListItem(
 						elem.Anchor(vecty.Markup(prop.Href("/help")), vecty.Text("Help")),

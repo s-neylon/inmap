@@ -23,7 +23,7 @@ import (
 	"math"
 )
 
-// Mech is an example type fulfils the github.com/spatialmodel/inmap/Mechanism
+// Mech is an example type fulfils the github.com/evookelj/inmap/Mechanism
 // interface.
 type Mech struct{}
 

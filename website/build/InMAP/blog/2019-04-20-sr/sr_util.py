@@ -76,13 +76,13 @@ def run_sr(emis, model, output_variables, emis_units="tons/year"):
         print("Downloading InMAP executable for %s               "%ost, end='\r')
         if ost == "Windows":
             _inmap_exe = os.path.join(_tmpdir.name, "inmap_1.6.1.exe")
-            _download("https://github.com/spatialmodel/inmap/releases/download/v1.6.1/inmap1.6.1windows-amd64.exe", _inmap_exe)
+            _download("https://github.com/evookelj/inmap/releases/download/v1.6.1/inmap1.6.1windows-amd64.exe", _inmap_exe)
         elif ost == "Darwin":
             _inmap_exe = os.path.join(_tmpdir.name, "inmap_1.6.1")
-            _download("https://github.com/spatialmodel/inmap/releases/download/v1.6.1/inmap1.6.1darwin-amd64", _inmap_exe)
+            _download("https://github.com/evookelj/inmap/releases/download/v1.6.1/inmap1.6.1darwin-amd64", _inmap_exe)
         elif ost == "Linux":
             _inmap_exe = os.path.join(_tmpdir.name, "inmap_1.6.1")
-            _download("https://github.com/spatialmodel/inmap/releases/download/v1.6.1/inmap1.6.1linux-amd64", _inmap_exe)
+            _download("https://github.com/evookelj/inmap/releases/download/v1.6.1/inmap1.6.1linux-amd64", _inmap_exe)
         else:
             raise(OSError("invalid operating system %s"%(ost)))
         os.chmod(_inmap_exe, stat.S_IXUSR|stat.S_IRUSR|stat.S_IWUSR)

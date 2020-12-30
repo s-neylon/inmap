@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/spatialmodel/inmap/emissions/slca"
+	"github.com/evookelj/inmap/emissions/slca"
 )
 
 // Vertex is a holder for the Vertex datatype in the GREET

@@ -37,7 +37,7 @@ import (
 	"github.com/ctessum/geom/proj"
 	"github.com/ctessum/unit"
 	goshp "github.com/jonas-p/go-shp"
-	"github.com/spatialmodel/inmap/emissions/aep"
+	"github.com/evookelj/inmap/emissions/aep"
 	"gonum.org/v1/gonum/floats"
 )
 
@@ -248,7 +248,7 @@ func ReadEmissionShapefiles(gridSR *proj.SR, units string, c chan string, mask g
 	return emis, nil
 }
 
-// FromAEP converts the given AEP (github.com/spatialmodel/inmap/emissions/aep) records to
+// FromAEP converts the given AEP (github.com/evookelj/inmap/emissions/aep) records to
 // EmisRecords using the given grid definitions and
 // grid index gi. VOC, NOx, NH3, SOx, and PM25 are lists of
 // AEP Polluants that should be mapped to those InMAP species.

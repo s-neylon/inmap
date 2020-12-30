@@ -18,14 +18,14 @@ The program is designed to more or less reproduce the functionality of the [SMOK
 
 2. Download and install the software library and utilities:
 
-		go get github.com/spatialmodel/inmap/emissions/aep/...
+		go get github.com/evookelj/inmap/emissions/aep/...
 	The Go language has an automatic system for finding and installing library dependencies; you may want to refer [here](http://golang.org/doc/code.html) to understand how it works.
 
 ## Use
 
 1. Obtain the necessary emissions data and ancilliary information. Information for obtaining 2014 US National Emissions Inventory data is available [here](data/nei2014). In addition to the changes to the data suggested in the README file in that directory, the road shapefile for spatial surrogates is misaligned and emissions from commercial cooking in New York State appear to be unreasonably high.
 
-2. Process the data. Although AEP is not currently available as an executable program, the full API is described [here](https://godoc.org/github.com/spatialmodel/inmap/emissions/aep) and a simplified API for common tasks is described [here](https://godoc.org/github.com/ctessum/spatialmodel/inmap/emissions/aeputil). More extensive documentation is not yet available, but an example of spatially processing annual total emissions is available [here](aeputil/scale_test.go).
+2. Process the data. Although AEP is not currently available as an executable program, the full API is described [here](https://godoc.org/github.com/evookelj/inmap/emissions/aep) and a simplified API for common tasks is described [here](https://godoc.org/github.com/ctessum/spatialmodel/inmap/emissions/aeputil). More extensive documentation is not yet available, but an example of spatially processing annual total emissions is available [here](aeputil/scale_test.go).
 
 
 ### TODO (Things that SMOKE can do that AEP cannot)

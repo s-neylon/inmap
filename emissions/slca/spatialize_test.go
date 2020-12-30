@@ -25,8 +25,8 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/gonum/floats"
 
-	"github.com/spatialmodel/inmap/emissions/slca/eieio/eieiorpc"
-	"github.com/spatialmodel/inmap/epi"
+	"github.com/evookelj/inmap/emissions/slca/eieio/eieiorpc"
+	"github.com/evookelj/inmap/epi"
 )
 
 func TestCSTConfig_EmissionsSurrogate(t *testing.T) {

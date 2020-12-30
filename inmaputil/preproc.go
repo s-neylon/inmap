@@ -23,7 +23,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/spatialmodel/inmap"
+	"github.com/evookelj/inmap"
 )
 
 // Preproc preprocesses chemical transport model

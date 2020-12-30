@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/spatialmodel/inmap/emissions/slca"
-	"github.com/spatialmodel/inmap/emissions/slca/greet"
+	"github.com/evookelj/inmap/emissions/slca"
+	"github.com/evookelj/inmap/emissions/slca/greet"
 
 	"github.com/BurntSushi/toml"
 	"github.com/ctessum/geom"

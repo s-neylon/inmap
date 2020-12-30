@@ -25,17 +25,17 @@ import (
 	"os"
 	"strings"
 
-	"github.com/spatialmodel/inmap"
-	"github.com/spatialmodel/inmap/emissions/aep"
-	"github.com/spatialmodel/inmap/emissions/aep/aeputil"
-	"github.com/spatialmodel/inmap/emissions/slca/eieio/eieiorpc"
-	"github.com/spatialmodel/inmap/internal/hash"
-	"github.com/spatialmodel/inmap/sr"
+	"github.com/evookelj/inmap"
+	"github.com/evookelj/inmap/emissions/aep"
+	"github.com/evookelj/inmap/emissions/aep/aeputil"
+	"github.com/evookelj/inmap/emissions/slca/eieio/eieiorpc"
+	"github.com/evookelj/inmap/internal/hash"
+	"github.com/evookelj/inmap/sr"
 
 	"github.com/ctessum/geom"
 	"github.com/ctessum/geom/proj"
 	"github.com/ctessum/requestcache"
-	"github.com/spatialmodel/inmap/epi"
+	"github.com/evookelj/inmap/epi"
 
 	"github.com/ctessum/sparse"
 )

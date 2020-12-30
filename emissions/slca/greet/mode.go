@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ctessum/unit"
-	"github.com/spatialmodel/inmap/emissions/slca"
+	"github.com/evookelj/inmap/emissions/slca"
 )
 
 // Mode is a holder for information about a transportation mode.

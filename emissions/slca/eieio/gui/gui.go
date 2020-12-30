@@ -32,7 +32,7 @@ import (
 	"github.com/gopherjs/vecty/event"
 	"github.com/gopherjs/vecty/prop"
 	"github.com/johanbrandhorst/protobuf/grpcweb"
-	eieiorpc "github.com/spatialmodel/inmap/emissions/slca/eieio/eieiorpc/eieiorpcjs"
+	eieiorpc "github.com/evookelj/inmap/emissions/slca/eieio/eieiorpc/eieiorpcjs"
 	"honnef.co/go/js/dom"
 )
 

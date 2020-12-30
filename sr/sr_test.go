@@ -31,11 +31,11 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/ctessum/cdf"
 	"github.com/gonum/floats"
-	"github.com/spatialmodel/inmap"
-	"github.com/spatialmodel/inmap/cloud"
-	"github.com/spatialmodel/inmap/inmaputil"
-	"github.com/spatialmodel/inmap/science/chem/simplechem"
-	"github.com/spatialmodel/inmap/sr"
+	"github.com/evookelj/inmap"
+	"github.com/evookelj/inmap/cloud"
+	"github.com/evookelj/inmap/inmaputil"
+	"github.com/evookelj/inmap/science/chem/simplechem"
+	"github.com/evookelj/inmap/sr"
 )
 
 // Set up directory location for configuration files.

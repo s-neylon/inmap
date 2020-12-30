@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spatialmodel/inmap/inmaputil"
+	"github.com/evookelj/inmap/inmaputil"
 )
 
 func main() {

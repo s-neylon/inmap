@@ -26,7 +26,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/spatialmodel/inmap/emissions/aep"
+	"github.com/evookelj/inmap/emissions/aep"
 	"gonum.org/v1/gonum/mat"
 )
 

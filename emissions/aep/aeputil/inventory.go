@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/ctessum/unit"
-	"github.com/spatialmodel/inmap/emissions/aep"
+	"github.com/evookelj/inmap/emissions/aep"
 )
 
 // InventoryConfig holds emissions inventory configuration information.

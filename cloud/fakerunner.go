@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/lnashier/viper"
-	"github.com/spatialmodel/inmap/cloud/cloudrpc"
+	"github.com/evookelj/inmap/cloud/cloudrpc"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	batch "k8s.io/api/batch/v1"
@@ -39,7 +39,7 @@ import (
 // NewFakeClient creates a client for testing.
 // Jobs that are created using this client are run locally.
 // The InMAP command must be compiled for it to work,
-// e.g., `go install github.com/spatialmodel/inmap/cmd/inmap`.
+// e.g., `go install github.com/evookelj/inmap/cmd/inmap`.
 // The checkConfig and checkRun functions, if not nil, will be run before
 // and after executing the inmap command, respectively.
 func NewFakeClient(checkConfig func([]string), checkRun func([]byte, error), bucket string, root *cobra.Command, config *viper.Viper, inputFileArgs, outputFileArgs []string) (*Client, error) {
@@ -52,7 +52,7 @@ func NewFakeClient(checkConfig func([]string), checkRun func([]byte, error), buc
 
 // fakeRun runs the InMAP simulation specified by the job.
 // The InMAP command must be compiled for it to work,
-// e.g., `go install github.com/spatialmodel/inmap/cmd/inmap`.
+// e.g., `go install github.com/evookelj/inmap/cmd/inmap`.
 func fakeRun(checkConfig func([]string), checkRun func([]byte, error), jobs *[]batch.Job) func(action k8stesting.Action) (handled bool, ret runtime.Object, err error) {
 	return func(action k8stesting.Action) (handled bool, ret runtime.Object, err error) {
 		job := action.(k8stesting.CreateAction).GetObject().(*batch.Job)

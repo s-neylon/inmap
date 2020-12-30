@@ -25,7 +25,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/spatialmodel/inmap/cloud/cloudrpc"
+	"github.com/evookelj/inmap/cloud/cloudrpc"
 	"github.com/spf13/pflag"
 )
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/spatialmodel/inmap/emissions/slca"
+	"github.com/evookelj/inmap/emissions/slca"
 )
 
 // Pathway is holder for a pathway in the GREET model. Refer to

@@ -6,7 +6,7 @@ sidebar_label: Installation
 
 ## Getting InMAP
 
-Go to [releases](https://github.com/spatialmodel/inmap/releases) to download the most recent release for your type of computer. For Mac systems, download the file with "darwin" in the name. You will need both the executable program and the input data ("evaldata_vX.X.X.zip"). All of the versions of the program are labeled "amd64" to denote that they are for 64-bit processors (i.e., all relatively recent notebook and desktop computers). It doesn't matter whether your computer processor is made by AMD or another brand, it should work either way.
+Go to [releases](https://github.com/evookelj/inmap/releases) to download the most recent release for your type of computer. For Mac systems, download the file with "darwin" in the name. You will need both the executable program and the input data ("evaldata_vX.X.X.zip"). All of the versions of the program are labeled "amd64" to denote that they are for 64-bit processors (i.e., all relatively recent notebook and desktop computers). It doesn't matter whether your computer processor is made by AMD or another brand, it should work either way.
 
 ### Compiling from source
 
@@ -19,7 +19,7 @@ You can also compile InMAP from its source code. The instructions here are speci
 4. Download and install the main program:
 
 	``` bash
-	git clone https://github.com/spatialmodel/inmap.git # Download the code.
+	git clone https://github.com/evookelj/inmap.git # Download the code.
 	cd inmap # Move into the InMAP directory
 	go build ./cmd/inmap # Compile the InMAP executable.
 	```

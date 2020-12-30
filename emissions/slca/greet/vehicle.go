@@ -6,7 +6,7 @@ import (
 
 	"github.com/ctessum/unit"
 
-	"github.com/spatialmodel/inmap/emissions/slca"
+	"github.com/evookelj/inmap/emissions/slca"
 )
 
 // Vehicle is a holder for information about a vehicle in the GREET

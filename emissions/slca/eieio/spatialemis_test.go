@@ -21,7 +21,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/spatialmodel/inmap/emissions/slca/eieio/eieiorpc"
+	"github.com/evookelj/inmap/emissions/slca/eieio/eieiorpc"
 
 	"gonum.org/v1/gonum/mat"
 )

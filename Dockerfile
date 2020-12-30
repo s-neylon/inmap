@@ -2,7 +2,7 @@ FROM golang:1.15
 
 WORKDIR /app
 
-RUN git clone --depth=1 https://github.com/spatialmodel/inmap.git
+RUN git clone --depth=1 https://github.com/evookelj/inmap.git
 
 WORKDIR /app/inmap
 

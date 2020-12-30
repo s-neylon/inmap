@@ -33,7 +33,7 @@ import (
 	"github.com/ctessum/geom/index/rtree"
 	"github.com/ctessum/requestcache/v4"
 	"github.com/ctessum/sparse"
-	"github.com/spatialmodel/inmap/internal/hash"
+	"github.com/evookelj/inmap/internal/hash"
 )
 
 type srgGenWorker struct {

@@ -26,7 +26,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/spatialmodel/inmap"
+	"github.com/evookelj/inmap"
 )
 
 // Set up directory location for configuration files.

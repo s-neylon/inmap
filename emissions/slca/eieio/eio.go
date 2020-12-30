@@ -25,7 +25,7 @@ import (
 	"github.com/ctessum/requestcache"
 	"gonum.org/v1/gonum/mat"
 
-	"github.com/spatialmodel/inmap/emissions/slca/eieio/eieiorpc"
+	"github.com/evookelj/inmap/emissions/slca/eieio/eieiorpc"
 )
 
 // Config holds simulation configuration imformation.

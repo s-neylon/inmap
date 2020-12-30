@@ -25,8 +25,8 @@ import (
 
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/lnashier/viper"
-	"github.com/spatialmodel/inmap"
-	"github.com/spatialmodel/inmap/cloud/cloudrpc"
+	"github.com/evookelj/inmap"
+	"github.com/evookelj/inmap/cloud/cloudrpc"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	batch "k8s.io/api/batch/v1"

@@ -48,7 +48,7 @@ const siteConfig = {
   headerLinks: [
     {doc: 'quickstart', label: 'Docs'},
     {href: 'https://inmap.run/eieio', label: 'EIEIO'},
-    {href: 'https://godoc.org/github.com/spatialmodel/inmap', label: 'API'},
+    {href: 'https://godoc.org/github.com/evookelj/inmap', label: 'API'},
     {page: 'help', label: 'Help'},
     {blog: true, label: 'Blog'},
   ],
@@ -105,7 +105,7 @@ const siteConfig = {
 
   // You may provide arbitrary config keys to be used as needed by your
   // template. For example, if you need your repo's URL...
-  repoUrl: 'https://github.com/spatialmodel/inmap',
+  repoUrl: 'https://github.com/evookelj/inmap',
 };
 
 module.exports = siteConfig;

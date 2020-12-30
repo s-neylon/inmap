@@ -29,10 +29,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/spatialmodel/inmap"
-	"github.com/spatialmodel/inmap/emissions/aep"
-	"github.com/spatialmodel/inmap/emissions/aep/aeputil"
-	"github.com/spatialmodel/inmap/internal/hash"
+	"github.com/evookelj/inmap"
+	"github.com/evookelj/inmap/emissions/aep"
+	"github.com/evookelj/inmap/emissions/aep/aeputil"
+	"github.com/evookelj/inmap/internal/hash"
 
 	"github.com/ctessum/sparse"
 

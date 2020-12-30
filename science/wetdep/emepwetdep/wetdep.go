@@ -20,7 +20,7 @@ along with InMAP.  If not, see <http://www.gnu.org/licenses/>.
 // the EMEP model.
 package emepwetdep
 
-import "github.com/spatialmodel/inmap"
+import "github.com/evookelj/inmap"
 
 // SO2 specifies array indicies that hold sulfur dioxide concentrations.
 type SO2 []int

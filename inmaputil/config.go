@@ -33,10 +33,10 @@ import (
 	"github.com/ctessum/geom/encoding/geojson"
 	"github.com/ctessum/geom/proj"
 	"github.com/lnashier/viper"
-	"github.com/spatialmodel/inmap"
-	"github.com/spatialmodel/inmap/cloud"
-	"github.com/spatialmodel/inmap/emissions/aep"
-	"github.com/spatialmodel/inmap/emissions/aep/aeputil"
+	"github.com/evookelj/inmap"
+	"github.com/evookelj/inmap/cloud"
+	"github.com/evookelj/inmap/emissions/aep"
+	"github.com/evookelj/inmap/emissions/aep/aeputil"
 	"github.com/spf13/cast"
 )
 

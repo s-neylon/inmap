@@ -23,12 +23,12 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/spatialmodel/inmap"
-	"github.com/spatialmodel/inmap/science/drydep/simpledrydep"
-	"github.com/spatialmodel/inmap/science/wetdep/emepwetdep"
+	"github.com/evookelj/inmap"
+	"github.com/evookelj/inmap/science/drydep/simpledrydep"
+	"github.com/evookelj/inmap/science/wetdep/emepwetdep"
 )
 
-// Mechanism fulfils the github.com/spatialmodel/inmap.Mechanism
+// Mechanism fulfils the github.com/evookelj/inmap.Mechanism
 // interface.
 type Mechanism struct{}
 

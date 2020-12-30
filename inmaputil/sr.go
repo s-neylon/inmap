@@ -25,9 +25,9 @@ import (
 	"os"
 
 	"github.com/ctessum/geom"
-	"github.com/spatialmodel/inmap"
-	"github.com/spatialmodel/inmap/cloud/cloudrpc"
-	"github.com/spatialmodel/inmap/sr"
+	"github.com/evookelj/inmap"
+	"github.com/evookelj/inmap/cloud/cloudrpc"
+	"github.com/evookelj/inmap/sr"
 )
 
 // StartSR starts the SR matrix creator, getting configuration information from the

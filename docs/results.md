@@ -32,7 +32,7 @@ PopWtd = "TotalPM25 * TotalPop / sum(TotalPop)"
 
 Note that equations can include variables that are defined in another equation.
 There are also some built-in equations, such as sum().
-See the [API documentation](https://godoc.org/github.com/spatialmodel/inmap#NewOutputter) for a complete list of built-in functions.
+See the [API documentation](https://godoc.org/github.com/evookelj/inmap#NewOutputter) for a complete list of built-in functions.
 
 We can also calculate differences in population-weighted concentrations among race-ethnicity groups:
 

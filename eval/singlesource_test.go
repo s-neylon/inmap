@@ -17,8 +17,8 @@ import (
 	"github.com/ctessum/geom/index/rtree"
 	"github.com/ctessum/geom/proj"
 
-	"github.com/spatialmodel/inmap/emissions/aep"
-	"github.com/spatialmodel/inmap/inmaputil"
+	"github.com/evookelj/inmap/emissions/aep"
+	"github.com/evookelj/inmap/inmaputil"
 
 	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/plot/vg"

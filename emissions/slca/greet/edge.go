@@ -3,7 +3,7 @@ package greet
 import (
 	"fmt"
 
-	"github.com/spatialmodel/inmap/emissions/slca"
+	"github.com/evookelj/inmap/emissions/slca"
 )
 
 // An Edge connects two vertices in a pathway or one vertex in a pathway

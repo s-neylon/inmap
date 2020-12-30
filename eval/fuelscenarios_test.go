@@ -19,8 +19,8 @@ import (
 	"github.com/ctessum/geom/encoding/shp"
 	"github.com/ctessum/geom/index/rtree"
 
-	"github.com/spatialmodel/inmap"
-	"github.com/spatialmodel/inmap/inmaputil"
+	"github.com/evookelj/inmap"
+	"github.com/evookelj/inmap/inmaputil"
 
 	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/plot/vg"

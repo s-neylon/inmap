@@ -23,9 +23,9 @@ import (
 
 	"github.com/ctessum/sparse"
 
-	"github.com/spatialmodel/inmap/emissions/slca/eieio/eieiorpc"
-	"github.com/spatialmodel/inmap/epi"
-	"github.com/spatialmodel/inmap/internal/hash"
+	"github.com/evookelj/inmap/emissions/slca/eieio/eieiorpc"
+	"github.com/evookelj/inmap/epi"
+	"github.com/evookelj/inmap/internal/hash"
 
 	"gonum.org/v1/gonum/mat"
 )

@@ -29,7 +29,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/spatialmodel/inmap/cloud"
+	"github.com/evookelj/inmap/cloud"
 )
 
 // download checks if the input is an existing file locally.

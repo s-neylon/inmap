@@ -26,13 +26,13 @@ import (
 	"sync"
 
 	"github.com/ctessum/requestcache"
-	"github.com/spatialmodel/inmap"
-	"github.com/spatialmodel/inmap/emissions/aep"
-	"github.com/spatialmodel/inmap/epi"
+	"github.com/evookelj/inmap"
+	"github.com/evookelj/inmap/emissions/aep"
+	"github.com/evookelj/inmap/epi"
 	"gonum.org/v1/gonum/mat"
 
-	"github.com/spatialmodel/inmap/emissions/slca"
-	"github.com/spatialmodel/inmap/emissions/slca/eieio/eieiorpc"
+	"github.com/evookelj/inmap/emissions/slca"
+	"github.com/evookelj/inmap/emissions/slca/eieio/eieiorpc"
 )
 
 // SpatialEIO implements a spatial EIO LCA model.

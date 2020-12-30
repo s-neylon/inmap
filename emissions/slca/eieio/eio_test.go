@@ -25,7 +25,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/spatialmodel/inmap/emissions/slca/eieio/eieiorpc"
+	"github.com/evookelj/inmap/emissions/slca/eieio/eieiorpc"
 )
 
 const tolerance = 1.e-10 // tolerance for float comparison

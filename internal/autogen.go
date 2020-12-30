@@ -30,9 +30,9 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	"github.com/spatialmodel/inmap"
-	"github.com/spatialmodel/inmap/inmaputil"
-	"github.com/spatialmodel/inmap/science/chem/simplechem"
+	"github.com/evookelj/inmap"
+	"github.com/evookelj/inmap/inmaputil"
+	"github.com/evookelj/inmap/science/chem/simplechem"
 	"github.com/spf13/cobra/doc"
 )
 

@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/spatialmodel/inmap/emissions/slca"
+	"github.com/evookelj/inmap/emissions/slca"
 
 	"github.com/ctessum/unit"
 )

@@ -15,9 +15,9 @@ import (
 	"github.com/ctessum/geom/encoding/shp"
 	"github.com/ctessum/geom/proj"
 
-	"github.com/spatialmodel/inmap"
-	"github.com/spatialmodel/inmap/inmaputil"
-	"github.com/spatialmodel/inmap/science/chem/simplechem"
+	"github.com/evookelj/inmap"
+	"github.com/evookelj/inmap/inmaputil"
+	"github.com/evookelj/inmap/science/chem/simplechem"
 
 	"gonum.org/v1/plot/vg"
 	vgdraw "gonum.org/v1/plot/vg/draw"
