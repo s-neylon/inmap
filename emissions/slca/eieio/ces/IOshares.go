@@ -165,6 +165,35 @@ func NewCES(eio eieiorpc.EIEIOrpcServer, dataDir string) (*CES, error) {
 		return nil, err
 	}
 
+	// Loop through each year of available data
+	// - data contain necessary metrics starting in 2003
+	for year := ces.StartYear; year <= ces.EndYear; year++ {
+
+		// Open raw CE data files
+		ethnicityInputFileName := filepath.Join(dataDir, fmt.Sprintf("hispanic%d.xlsx", year))
+
+		// hardcoded: which column corresponds to which group?
+		const AggregateCol = 1
+		const NonHispanicWhiteCol = 4
+		const LatinoCol = 2
+		const BlackCol = 5
+
+		// Keep these variables matching!
+		demCols := []int{NonHispanicWhiteCol, LatinoCol, BlackCol}
+		res, err := getDataForDemographics(ethnicityInputFileName, ceKeys, ioCEMap, AggregateCol, demCols)
+		if err != nil {
+			return nil, err
+		}
+		ces.whiteFractions[year] = res[0]
+		ces.latinoFractions[year] = res[1]
+		ces.blackFractions[year] = res[2]
+	}
+	ces.normalize()
+	return &ces, nil
+}
+
+// Returns IO data for demographics in the order they are provided
+func getDataForDemographics(inputFileName string, ceKeys []string, ioCEMap map[string][]string, AggregateCol int, demCols []int) ([]map[string]float64, error) {
 	// Flags specific string values to be replaced when looping through data
 	// a Value is too small to display.
 	// b Data are likely to have large sampling errors.
@@ -178,81 +207,62 @@ func NewCES(eio eieiorpc.EIEIOrpcServer, dataDir string) (*CES, error) {
 		return strconv.ParseFloat(s2, 64)
 	}
 
-	// Loop through each year of available data
-	// - data contain necessary metrics starting in 2003
-	for year := ces.StartYear; year <= ces.EndYear; year++ {
+	// Open raw CE data files
+	inputFile, err := xlsx.OpenFile(inputFileName)
+	if err != nil {
+		return nil, err
+	}
+	cesSheet := inputFile.Sheets[0]
 
-		nonHispWhite := make(map[string][]float64)
-		latino := make(map[string][]float64)
-		black := make(map[string][]float64)
+	dataMapCES := make([]map[string][]float64, 0, len(demCols))
+	for range demCols {
+		dataMapCES = append(dataMapCES, make(map[string][]float64))
+	}
 
-		// Open raw CE data files
-		inputFileName := filepath.Join(dataDir, fmt.Sprintf("hispanic%d.xlsx", year))
-		var inputFile *xlsx.File
-		inputFile, err = xlsx.OpenFile(inputFileName)
-		if err != nil {
-			return nil, err
+	for _, row := range cesSheet.Rows {
+
+		// Skip blank rows
+		if len(row.Cells) == 0 {
+			continue
 		}
-		sheet := inputFile.Sheets[0]
-		for _, row := range sheet.Rows {
 
-			// Skip blank rows
-			if len(row.Cells) == 0 {
-				continue
+		// The key is the CES category.
+		key := strings.Trim(row.Cells[0].Value, " ")
+
+		// For each CE category that we are interested in, find the
+		// corresponding row in the raw CE data files and pull spending
+		// share and aggregate spending numbers.
+		for _, line := range ceKeys {
+			match, err := regexp.MatchString("^"+line+"$", key)
+			if err != nil {
+				return nil, err
 			}
-
-			// The key is the CES category.
-			key := strings.Trim(row.Cells[0].Value, " ")
-
-			// For each CE category that we are interested in, find the
-			// corresponding row in the raw CE data files and pull spending
-			// share and aggregate spending numbers.
-			for _, line := range ceKeys {
-				match, err := regexp.MatchString("^"+line+"$", key)
+			if match {
+				aggregate, err := s2f(row.Cells[AggregateCol].Value)
 				if err != nil {
 					return nil, err
 				}
-				if match {
-					aggregate, err := s2f(row.Cells[1].Value)
+
+				for demIdx, colNum := range demCols {
+					colShare, err := s2f(row.Cells[colNum].Value)
 					if err != nil {
 						return nil, err
 					}
 
-					shareNonHispWhite, err := s2f(row.Cells[4].Value)
-					if err != nil {
-						return nil, err
-					}
-					shareLatino, err := s2f(row.Cells[2].Value)
-					if err != nil {
-						return nil, err
-					}
-					shareBlack, err := s2f(row.Cells[5].Value)
-					if err != nil {
-						return nil, err
-					}
-					nonHispWhite[key] = append(nonHispWhite[key], aggregate*shareNonHispWhite/100)
-					nonHispWhite[key] = append(nonHispWhite[key], shareNonHispWhite/100)
-					latino[key] = append(latino[key], aggregate*shareLatino/100)
-					latino[key] = append(latino[key], shareLatino/100)
-					black[key] = append(black[key], aggregate*shareBlack/100)
-					black[key] = append(black[key], shareBlack/100)
-
+					dataMapCES[demIdx][key] = append(dataMapCES[demIdx][key], aggregate * colShare/100)
+					dataMapCES[demIdx][key] = append(dataMapCES[demIdx][key], colShare/100)
 				}
 			}
 		}
-		nonHispWhiteIO := matchSharesToSectors(ioCEMap, nonHispWhite)
-		nonHispWhiteFinal := weightedAvgShares(nonHispWhiteIO)
-		latinoIO := matchSharesToSectors(ioCEMap, latino)
-		latinoFinal := weightedAvgShares(latinoIO)
-		blackIO := matchSharesToSectors(ioCEMap, black)
-		blackFinal := weightedAvgShares(blackIO)
-
-		ces.whiteFractions[year] = nonHispWhiteFinal
-		ces.latinoFractions[year] = latinoFinal
-		ces.blackFractions[year] = blackFinal
 	}
-	ces.normalize()
-	return &ces, nil
+
+	finalResultsByDem := make([]map[string]float64, 0, len(dataMapCES))
+	for _, demCESDataMap := range dataMapCES {
+		demIO := matchSharesToSectors(ioCEMap, demCESDataMap)
+		demFinal := weightedAvgShares(demIO)
+		finalResultsByDem = append(finalResultsByDem, demFinal)
+	}
+	return finalResultsByDem, nil
 }
 
 func (ces *CES) normalize() {
