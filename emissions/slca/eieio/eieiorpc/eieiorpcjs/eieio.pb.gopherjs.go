@@ -20,6 +20,7 @@
 		ColorInfo
 		FinalDemandInput
 		DemographicConsumptionInput
+		Demograph
 		ConcentrationMatrixInput
 		ConcentrationInput
 		EmissionsMatrixInput
@@ -213,31 +214,77 @@ func (x FinalDemandType) String() string {
 	return FinalDemandType_name[int(x)]
 }
 
-// These are the included demographic groups.
-type Demograph int
+type Ethnicity int
 
 const (
-	Demograph_Black      Demograph = 0
-	Demograph_Hispanic   Demograph = 1
-	Demograph_WhiteOther Demograph = 2
-	Demograph_All        Demograph = 3
+	Ethnicity_Black         Ethnicity = 0
+	Ethnicity_Hispanic      Ethnicity = 1
+	Ethnicity_WhiteOther    Ethnicity = 2
+	Ethnicity_Ethnicity_All Ethnicity = 3
 )
 
-var Demograph_name = map[int]string{
+var Ethnicity_name = map[int]string{
 	0: "Black",
 	1: "Hispanic",
 	2: "WhiteOther",
-	3: "All",
+	3: "Ethnicity_All",
 }
-var Demograph_value = map[string]int{
-	"Black":      0,
-	"Hispanic":   1,
-	"WhiteOther": 2,
-	"All":        3,
+var Ethnicity_value = map[string]int{
+	"Black":         0,
+	"Hispanic":      1,
+	"WhiteOther":    2,
+	"Ethnicity_All": 3,
 }
 
-func (x Demograph) String() string {
-	return Demograph_name[int(x)]
+func (x Ethnicity) String() string {
+	return Ethnicity_name[int(x)]
+}
+
+type Decile int
+
+const (
+	Decile_LowestTen        Decile = 0
+	Decile_SecondLowestTen  Decile = 1
+	Decile_ThirdLowestTen   Decile = 2
+	Decile_FourthLowestTen  Decile = 3
+	Decile_FifthLowestTen   Decile = 4
+	Decile_SixthLowestTen   Decile = 5
+	Decile_SeventhLowestTen Decile = 6
+	Decile_EighthLowestTen  Decile = 7
+	Decile_NinthLowestTen   Decile = 8
+	Decile_HighestTen       Decile = 9
+	Decile_Decile_All       Decile = 10
+)
+
+var Decile_name = map[int]string{
+	0:  "LowestTen",
+	1:  "SecondLowestTen",
+	2:  "ThirdLowestTen",
+	3:  "FourthLowestTen",
+	4:  "FifthLowestTen",
+	5:  "SixthLowestTen",
+	6:  "SeventhLowestTen",
+	7:  "EighthLowestTen",
+	8:  "NinthLowestTen",
+	9:  "HighestTen",
+	10: "Decile_All",
+}
+var Decile_value = map[string]int{
+	"LowestTen":        0,
+	"SecondLowestTen":  1,
+	"ThirdLowestTen":   2,
+	"FourthLowestTen":  3,
+	"FifthLowestTen":   4,
+	"SixthLowestTen":   5,
+	"SeventhLowestTen": 6,
+	"EighthLowestTen":  7,
+	"NinthLowestTen":   8,
+	"HighestTen":       9,
+	"Decile_All":       10,
+}
+
+func (x Decile) String() string {
+	return Decile_name[int(x)]
 }
 
 type StringInput struct {
@@ -1306,13 +1353,13 @@ func (m *FinalDemandInput) Unmarshal(rawBytes []byte) (*FinalDemandInput, error)
 }
 
 type DemographicConsumptionInput struct {
-	Demograph  Demograph
+	Demograph  *Demograph
 	EndUseMask *Mask
 	Year       int32
 }
 
 // GetDemograph gets the Demograph of the DemographicConsumptionInput.
-func (m *DemographicConsumptionInput) GetDemograph() (x Demograph) {
+func (m *DemographicConsumptionInput) GetDemograph() (x *Demograph) {
 	if m == nil {
 		return x
 	}
@@ -1341,8 +1388,10 @@ func (m *DemographicConsumptionInput) MarshalToWriter(writer jspb.Writer) {
 		return
 	}
 
-	if int(m.Demograph) != 0 {
-		writer.WriteEnum(1, int(m.Demograph))
+	if m.Demograph != nil {
+		writer.WriteMessage(1, func() {
+			m.Demograph.MarshalToWriter(writer)
+		})
 	}
 
 	if m.EndUseMask != nil {
@@ -1374,7 +1423,9 @@ func (m *DemographicConsumptionInput) UnmarshalFromReader(reader jspb.Reader) *D
 
 		switch reader.GetFieldNumber() {
 		case 1:
-			m.Demograph = Demograph(reader.ReadEnum())
+			reader.ReadMessage(func() {
+				m.Demograph = m.Demograph.UnmarshalFromReader(reader)
+			})
 		case 2:
 			reader.ReadMessage(func() {
 				m.EndUseMask = m.EndUseMask.UnmarshalFromReader(reader)
@@ -1391,6 +1442,118 @@ func (m *DemographicConsumptionInput) UnmarshalFromReader(reader jspb.Reader) *D
 
 // Unmarshal unmarshals a DemographicConsumptionInput from a slice of bytes.
 func (m *DemographicConsumptionInput) Unmarshal(rawBytes []byte) (*DemographicConsumptionInput, error) {
+	reader := jspb.NewReader(rawBytes)
+
+	m = m.UnmarshalFromReader(reader)
+
+	if err := reader.Err(); err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
+
+// These are the included demographic groups.
+type Demograph struct {
+	// Types that are valid to be assigned to Demographic:
+	//	*Demograph_Ethnicity
+	//	*Demograph_Decile
+	Demographic isDemograph_Demographic
+}
+
+// isDemograph_Demographic is used to distinguish types assignable to Demographic
+type isDemograph_Demographic interface{ isDemograph_Demographic() }
+
+// Demograph_Ethnicity is assignable to Demographic
+type Demograph_Ethnicity struct {
+	Ethnicity Ethnicity
+}
+
+// Demograph_Decile is assignable to Demographic
+type Demograph_Decile struct {
+	Decile Decile
+}
+
+func (*Demograph_Ethnicity) isDemograph_Demographic() {}
+func (*Demograph_Decile) isDemograph_Demographic()    {}
+
+// GetDemographic gets the Demographic of the Demograph.
+func (m *Demograph) GetDemographic() (x isDemograph_Demographic) {
+	if m == nil {
+		return x
+	}
+	return m.Demographic
+}
+
+// GetEthnicity gets the Ethnicity of the Demograph.
+func (m *Demograph) GetEthnicity() (x Ethnicity) {
+	if v, ok := m.GetDemographic().(*Demograph_Ethnicity); ok {
+		return v.Ethnicity
+	}
+	return x
+}
+
+// GetDecile gets the Decile of the Demograph.
+func (m *Demograph) GetDecile() (x Decile) {
+	if v, ok := m.GetDemographic().(*Demograph_Decile); ok {
+		return v.Decile
+	}
+	return x
+}
+
+// MarshalToWriter marshals Demograph to the provided writer.
+func (m *Demograph) MarshalToWriter(writer jspb.Writer) {
+	if m == nil {
+		return
+	}
+
+	switch t := m.Demographic.(type) {
+	case *Demograph_Ethnicity:
+		if int(t.Ethnicity) != 0 {
+			writer.WriteEnum(1, int(t.Ethnicity))
+		}
+	case *Demograph_Decile:
+		if int(t.Decile) != 0 {
+			writer.WriteEnum(2, int(t.Decile))
+		}
+	}
+
+	return
+}
+
+// Marshal marshals Demograph to a slice of bytes.
+func (m *Demograph) Marshal() []byte {
+	writer := jspb.NewWriter()
+	m.MarshalToWriter(writer)
+	return writer.GetResult()
+}
+
+// UnmarshalFromReader unmarshals a Demograph from the provided reader.
+func (m *Demograph) UnmarshalFromReader(reader jspb.Reader) *Demograph {
+	for reader.Next() {
+		if m == nil {
+			m = &Demograph{}
+		}
+
+		switch reader.GetFieldNumber() {
+		case 1:
+			m.Demographic = &Demograph_Ethnicity{
+				Ethnicity: Ethnicity(reader.ReadEnum()),
+			}
+		case 2:
+			m.Demographic = &Demograph_Decile{
+				Decile: Decile(reader.ReadEnum()),
+			}
+		default:
+			reader.SkipField()
+		}
+	}
+
+	return m
+}
+
+// Unmarshal unmarshals a Demograph from a slice of bytes.
+func (m *Demograph) Unmarshal(rawBytes []byte) (*Demograph, error) {
 	reader := jspb.NewReader(rawBytes)
 
 	m = m.UnmarshalFromReader(reader)

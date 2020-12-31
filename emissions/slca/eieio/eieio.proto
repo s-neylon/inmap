@@ -186,11 +186,32 @@ message DemographicConsumptionInput {
 }
 
 // These are the included demographic groups.
-enum Demograph {
+message Demograph {
+  oneof demographic {
+    Ethnicity ethnicity = 1;
+    Decile decile = 2;
+  }
+}
+
+enum Ethnicity {
   Black = 0;
   Hispanic = 1;
   WhiteOther = 2;
-  All = 3;
+  Ethnicity_All = 3;
+}
+
+enum Decile {
+  LowestTen = 0;
+  SecondLowestTen = 1;
+  ThirdLowestTen = 2;
+  FourthLowestTen = 3;
+  FifthLowestTen = 4;
+  SixthLowestTen = 5;
+  SeventhLowestTen = 6;
+  EighthLowestTen = 7;
+  NinthLowestTen = 8;
+  HighestTen = 9;
+  Decile_All = 10;
 }
 
 message ConcentrationMatrixInput {

@@ -47,6 +47,9 @@ type CES struct {
 	blackFractions  map[int]map[string]float64
 	latinoFractions map[int]map[string]float64
 
+	// Index 0 = lowest 10% of income, 1 = second lowest 10% of income, and so on
+	decileFractions []map[int]map[string]float64
+
 	eio eieiorpc.EIEIOrpcServer
 }
 
@@ -136,13 +139,18 @@ func NewCES(eio eieiorpc.EIEIOrpcServer, dataDir string) (*CES, error) {
 		return nil, err
 	}
 
+	const NumDeciles = 10
 	ces := CES{
 		StartYear:       2003,
 		EndYear:         2015,
 		whiteFractions:  make(map[int]map[string]float64),
 		blackFractions:  make(map[int]map[string]float64),
 		latinoFractions: make(map[int]map[string]float64),
+		decileFractions: make([]map[int]map[string]float64, NumDeciles),
 		eio:             eio,
+	}
+	for idx := 0; idx < NumDeciles; idx++ {
+		ces.decileFractions[idx] = make(map[int]map[string]float64)
 	}
 
 	for _, sheet := range ioCEXLSX.Sheets {
@@ -169,24 +177,40 @@ func NewCES(eio eieiorpc.EIEIOrpcServer, dataDir string) (*CES, error) {
 	// - data contain necessary metrics starting in 2003
 	for year := ces.StartYear; year <= ces.EndYear; year++ {
 
-		// Open raw CE data files
-		ethnicityInputFileName := filepath.Join(dataDir, fmt.Sprintf("hispanic%d.xlsx", year))
-
+		// BY ETHNICITY GROUP
 		// hardcoded: which column corresponds to which group?
-		const AggregateCol = 1
+		const EthnicityAggregateCol = 1
 		const NonHispanicWhiteCol = 4
 		const LatinoCol = 2
 		const BlackCol = 5
-
-		// Keep these variables matching!
 		demCols := []int{NonHispanicWhiteCol, LatinoCol, BlackCol}
-		res, err := getDataForDemographics(ethnicityInputFileName, ceKeys, ioCEMap, AggregateCol, demCols)
+		ethnicityInputFileName := filepath.Join(dataDir, fmt.Sprintf("hispanic%d.xlsx", year))
+		ethnicityRes, err := getDataForDemographics(ethnicityInputFileName, ceKeys, ioCEMap, EthnicityAggregateCol, demCols)
 		if err != nil {
 			return nil, err
 		}
-		ces.whiteFractions[year] = res[0]
-		ces.latinoFractions[year] = res[1]
-		ces.blackFractions[year] = res[2]
+		ces.whiteFractions[year] = ethnicityRes[0]
+		ces.latinoFractions[year] = ethnicityRes[1]
+		ces.blackFractions[year] = ethnicityRes[2]
+
+		// BY INCOME DECILE
+		if year >= 2014 { // decile data DNE earlier than this
+			// harcoded: which column corresponds to which group?
+			const DecileAggregateCol = 1
+			const NumDeciles = 10 // income specified in 10%s, so there are 10
+			decileCols := make([]int, NumDeciles)
+			for idx := 0; idx < NumDeciles; idx++ {
+				decileCols[idx] = 2 + idx // lowest 10% at 2, then second 10% at 3, so on ...
+			}
+			decileInputFileName := filepath.Join(dataDir, fmt.Sprintf("decile%d.xlsx", year))
+			decileResults, err := getDataForDemographics(decileInputFileName, ceKeys, ioCEMap, DecileAggregateCol, decileCols)
+			if err != nil {
+				return nil, err
+			}
+			for decile, decileResult := range decileResults {
+				ces.decileFractions[decile][year] = decileResult
+			}
+		}
 	}
 	ces.normalize()
 	return &ces, nil
@@ -219,7 +243,7 @@ func getDataForDemographics(inputFileName string, ceKeys []string, ioCEMap map[s
 		dataMapCES = append(dataMapCES, make(map[string][]float64))
 	}
 
-	for _, row := range cesSheet.Rows {
+	for rowIdx, row := range cesSheet.Rows {
 
 		// Skip blank rows
 		if len(row.Cells) == 0 {
@@ -238,19 +262,48 @@ func getDataForDemographics(inputFileName string, ceKeys []string, ioCEMap map[s
 				return nil, err
 			}
 			if match {
-				aggregate, err := s2f(row.Cells[AggregateCol].Value)
-				if err != nil {
-					return nil, err
-				}
 
-				for demIdx, colNum := range demCols {
-					colShare, err := s2f(row.Cells[colNum].Value)
+				var aggregate float64
+				var meanExpenditureByDem = make([]float64, len(demCols))
+
+				/*For each ethnicity group and product category, data offers
+				share of consumption of that good incurred by that group
+
+				Whereas for each decile and product category, data offers
+				mean expenditure in $, and share of that decile's expenditure
+				that goes towards that good. So we have to translate it
+				into data more like that of ethnicity
+				*/
+				if strings.Contains(inputFileName, "decile") {
+					const MeanOffset = 1
+					rowOfMeans := cesSheet.Rows[rowIdx+MeanOffset]
+					for demIdx, colNum := range demCols {
+						demValue, err := s2f(rowOfMeans.Cells[colNum].Value)
+						if err != nil {
+							return nil, err
+						}
+						aggregate += demValue
+						meanExpenditureByDem[demIdx] = demValue
+					}
+				} else {
+					var err error
+					aggregate, err = s2f(row.Cells[AggregateCol].Value)
 					if err != nil {
 						return nil, err
 					}
 
-					dataMapCES[demIdx][key] = append(dataMapCES[demIdx][key], aggregate * colShare/100)
-					dataMapCES[demIdx][key] = append(dataMapCES[demIdx][key], colShare/100)
+					for demIdx, colNum := range demCols {
+						colShare, err := s2f(row.Cells[colNum].Value)
+						if err != nil {
+							return nil, err
+						}
+						meanExpenditureByDem[demIdx] = aggregate * colShare / 100
+					}
+				}
+
+				for demIdx, meanExpenditure := range meanExpenditureByDem {
+					dataMapCES[demIdx][key] = append(dataMapCES[demIdx][key], meanExpenditure)
+					dataMapCES[demIdx][key] = append(dataMapCES[demIdx][key], meanExpenditure / aggregate)
 				}
 			}
 		}
@@ -271,10 +324,20 @@ func (ces *CES) normalize() {
 			whiteV := ces.whiteFractions[year][sector]
 			latinoV := ces.latinoFractions[year][sector]
 			blackV := ces.blackFractions[year][sector]
-			total := whiteV + latinoV + blackV
-			ces.whiteFractions[year][sector] = whiteV / total
-			ces.latinoFractions[year][sector] = latinoV / total
-			ces.blackFractions[year][sector] = blackV / total
+			totalForEthnicity := whiteV + latinoV + blackV
+			ces.whiteFractions[year][sector] = whiteV / totalForEthnicity
+			ces.latinoFractions[year][sector] = latinoV / totalForEthnicity
+			ces.blackFractions[year][sector] = blackV / totalForEthnicity
+		}
+
+		for sector := range ces.decileFractions[0][year] {
+			totalForDeciles := float64(0)
+			for decIdx := 0; decIdx < len(ces.decileFractions); decIdx++ {
+				totalForDeciles += ces.decileFractions[decIdx][year][sector]
+			}
+			for decIdx := 0; decIdx < len(ces.decileFractions); decIdx++ {
+				ces.decileFractions[decIdx][year][sector] /= totalForDeciles
+			}
 		}
 	}
 }
