@@ -35,13 +35,6 @@ func init() {
 	os.Setenv("INMAP_ROOT_DIR", "../../../../")
 }
 
-func ethnicityToDemograph(eth eieiorpc.Ethnicity) *eieiorpc.Demograph {
-	return &eieiorpc.Demograph{
-		Demographic: &eieiorpc.Demograph_Ethnicity{
-			eth,
-		},
-	}
-}
 
 func TestCES(t *testing.T) {
 	f, err := os.Open("../data/test_config.toml")
@@ -68,7 +61,7 @@ func TestCES(t *testing.T) {
 
 	t.Run("demand", func(t *testing.T) {
 		d, err := c.DemographicConsumption(context.Background(), &eieiorpc.DemographicConsumptionInput{
-			Demograph: ethnicityToDemograph(eieiorpc.Ethnicity_WhiteOther),
+			Demograph: ces.EthnicityToDemograph(eieiorpc.Ethnicity_WhiteOther),
 			Year:      2014,
 		})
 		if err != nil {
@@ -81,7 +74,7 @@ func TestCES(t *testing.T) {
 		}
 
 		d, err = c.DemographicConsumption(context.Background(), &eieiorpc.DemographicConsumptionInput{
-			Demograph: ethnicityToDemograph(eieiorpc.Ethnicity_Black),
+			Demograph: ces.EthnicityToDemograph(eieiorpc.Ethnicity_Black),
 			Year:      2014,
 		})
 		if err != nil {
@@ -94,7 +87,7 @@ func TestCES(t *testing.T) {
 		}
 
 		d, err = c.DemographicConsumption(context.Background(), &eieiorpc.DemographicConsumptionInput{
-			Demograph: ethnicityToDemograph(eieiorpc.Ethnicity_Hispanic),
+			Demograph: ces.EthnicityToDemograph(eieiorpc.Ethnicity_Hispanic),
 			Year:      2014,
 		})
 		if err != nil {
@@ -107,7 +100,7 @@ func TestCES(t *testing.T) {
 		}
 
 		d, err = c.DemographicConsumption(context.Background(), &eieiorpc.DemographicConsumptionInput{
-			Demograph: ethnicityToDemograph(eieiorpc.Ethnicity_Ethnicity_All),
+			Demograph: ces.EthnicityToDemograph(eieiorpc.Ethnicity_Ethnicity_All),
 			Year:      2014,
 		})
 		if err != nil {
@@ -151,7 +144,7 @@ func TestCES(t *testing.T) {
 
 			totalCons, err := c.DemographicConsumption(ctx, &eieiorpc.DemographicConsumptionInput{
 				Year:      2014,
-				Demograph: ethnicityToDemograph(eieiorpc.Ethnicity_Black),
+				Demograph: ces.EthnicityToDemograph(eieiorpc.Ethnicity_Black),
 			})
 			if err != nil {
 				t.Fatal(err)
@@ -183,7 +176,7 @@ func TestCES(t *testing.T) {
 				cons, err := c.DemographicConsumption(ctx, &eieiorpc.DemographicConsumptionInput{
 					Year:       2014,
 					EndUseMask: useMask,
-					Demograph:  ethnicityToDemograph(eieiorpc.Ethnicity_Black),
+					Demograph:  ces.EthnicityToDemograph(eieiorpc.Ethnicity_Black),
 				})
 				if err != nil {
 					t.Fatal(err)
@@ -223,7 +216,7 @@ func TestCES(t *testing.T) {
 		t.Run("years", func(t *testing.T) {
 			for _, year := range cfg.Config.Years {
 				_, err = c.DemographicConsumption(context.Background(), &eieiorpc.DemographicConsumptionInput{
-					Demograph: ethnicityToDemograph(eieiorpc.Ethnicity_Hispanic),
+					Demograph: ces.EthnicityToDemograph(eieiorpc.Ethnicity_Hispanic),
 					Year:      int32(year),
 				})
 				if err != nil {

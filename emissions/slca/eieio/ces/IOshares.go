@@ -227,6 +227,23 @@ func NewCES(eio eieiorpc.EIEIOrpcServer, dataDir string) (*CES, error) {
 	return &ces, nil
 }
 
+func EthnicityToDemograph(eth eieiorpc.Ethnicity) *eieiorpc.Demograph {
+	return &eieiorpc.Demograph{
+		Demographic: &eieiorpc.Demograph_Ethnicity{
+			eth,
+		},
+	}
+}
+
+func DecileToDemograph(dec eieiorpc.Decile) *eieiorpc.Demograph {
+	return &eieiorpc.Demograph{
+		Demographic: &eieiorpc.Demograph_Decile{
+			dec,
+		},
+	}
+}
+
+
 // Returns IO data for demographics in the order they are provided
 func getDataForDemographics(inputFileName string, ceKeys []string, ioCEMap map[string][]string, AggregateCol int, demCols []int) ([]map[string]float64, error) {
 	// Flags specific string values to be replaced when looping through data
