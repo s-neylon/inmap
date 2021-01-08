@@ -30,8 +30,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gonum/floats"
 	"github.com/evookelj/inmap/emissions/slca/eieio/eieiorpc"
+	"github.com/gonum/floats"
 
 	"github.com/tealeg/xlsx"
 )
@@ -43,12 +43,10 @@ type CES struct {
 	// years for data availability, respectively.
 	StartYear, EndYear int
 
-	whiteFractions  map[int]map[string]float64
-	blackFractions  map[int]map[string]float64
-	latinoFractions map[int]map[string]float64
-
-	// Index 0 = lowest 10% of income, 1 = second lowest 10% of income, and so on
-	decileFractions []map[int]map[string]float64
+	// fraction of total consumption incurred by demographics
+	// in each year and IO sector
+	ethnicityFractions map[eieiorpc.Ethnicity]map[int]map[string]float64
+	decileFractions map[eieiorpc.Decile]map[int]map[string]float64
 
 	eio eieiorpc.EIEIOrpcServer
 }
@@ -140,17 +138,27 @@ func NewCES(eio eieiorpc.EIEIOrpcServer, dataDir string) (*CES, error) {
 	}
 
 	const NumDeciles = 10
+	const StartYear = 2003
+	const EndYear = 2015
 	ces := CES{
-		StartYear:       2003,
-		EndYear:         2015,
-		whiteFractions:  make(map[int]map[string]float64),
-		blackFractions:  make(map[int]map[string]float64),
-		latinoFractions: make(map[int]map[string]float64),
-		decileFractions: make([]map[int]map[string]float64, NumDeciles),
+		StartYear:       StartYear,
+		EndYear:         EndYear,
+		ethnicityFractions: make(map[eieiorpc.Ethnicity]map[int]map[string]float64),
+		decileFractions: make(map[eieiorpc.Decile]map[int]map[string]float64),
 		eio:             eio,
 	}
-	for idx := 0; idx < NumDeciles; idx++ {
-		ces.decileFractions[idx] = make(map[int]map[string]float64)
+
+	for _, val := range eieiorpc.Ethnicity_value {
+		dem := eieiorpc.Ethnicity(val)
+		if dem != eieiorpc.Ethnicity_Ethnicity_All {
+			ces.ethnicityFractions[dem] = make(map[int]map[string]float64)
+		}
+	}
+	for _, val := range eieiorpc.Decile_value {
+		dem := eieiorpc.Decile(val)
+		if dem != eieiorpc.Decile_Decile_All {
+			ces.decileFractions[dem] = make(map[int]map[string]float64)
+		}
 	}
 
 	for _, sheet := range ioCEXLSX.Sheets {
@@ -173,31 +181,30 @@ func NewCES(eio eieiorpc.EIEIOrpcServer, dataDir string) (*CES, error) {
 		return nil, err
 	}
 
+	// hardcoded: which column corresponds to which group?
+	const EthnicityAggregateCol = 1
+	const NonHispanicWhiteCol = 4
+	const LatinoCol = 2
+	const BlackCol = 5
+	const DecileAggregateCol = 1
+
 	// Loop through each year of available data
 	// - data contain necessary metrics starting in 2003
 	for year := ces.StartYear; year <= ces.EndYear; year++ {
 
 		// BY ETHNICITY GROUP
-		// hardcoded: which column corresponds to which group?
-		const EthnicityAggregateCol = 1
-		const NonHispanicWhiteCol = 4
-		const LatinoCol = 2
-		const BlackCol = 5
-		demCols := []int{NonHispanicWhiteCol, LatinoCol, BlackCol}
+		demCols := []int{BlackCol, LatinoCol, NonHispanicWhiteCol}
 		ethnicityInputFileName := filepath.Join(dataDir, fmt.Sprintf("hispanic%d.xlsx", year))
 		ethnicityRes, err := getDataForDemographics(ethnicityInputFileName, ceKeys, ioCEMap, EthnicityAggregateCol, demCols)
 		if err != nil {
 			return nil, err
 		}
-		ces.whiteFractions[year] = ethnicityRes[0]
-		ces.latinoFractions[year] = ethnicityRes[1]
-		ces.blackFractions[year] = ethnicityRes[2]
+		ces.ethnicityFractions[eieiorpc.Ethnicity_Black][year] = ethnicityRes[0]
+		ces.ethnicityFractions[eieiorpc.Ethnicity_Hispanic][year] = ethnicityRes[1]
+		ces.ethnicityFractions[eieiorpc.Ethnicity_WhiteOther][year] = ethnicityRes[2]
 
 		// BY INCOME DECILE
 		if year >= 2014 { // decile data DNE earlier than this
-			// harcoded: which column corresponds to which group?
-			const DecileAggregateCol = 1
-			const NumDeciles = 10 // income specified in 10%s, so there are 10
 			decileCols := make([]int, NumDeciles)
 			for idx := 0; idx < NumDeciles; idx++ {
 				decileCols[idx] = 2 + idx // lowest 10% at 2, then second 10% at 3, so on ...
@@ -207,7 +214,11 @@ func NewCES(eio eieiorpc.EIEIOrpcServer, dataDir string) (*CES, error) {
 			if err != nil {
 				return nil, err
 			}
-			for decile, decileResult := range decileResults {
+
+			for decileIdx, decileResult := range decileResults {
+				// NOTE: This relies on protobuf enum values being
+				// lowest 10% = 0, second 10% = 1, ...
+				decile := eieiorpc.Decile(decileIdx)
 				ces.decileFractions[decile][year] = decileResult
 			}
 		}
@@ -319,24 +330,24 @@ func getDataForDemographics(inputFileName string, ceKeys []string, ioCEMap map[s
 }
 
 func (ces *CES) normalize() {
-	for year := range ces.whiteFractions {
-		for sector := range ces.whiteFractions[year] {
-			whiteV := ces.whiteFractions[year][sector]
-			latinoV := ces.latinoFractions[year][sector]
-			blackV := ces.blackFractions[year][sector]
-			totalForEthnicity := whiteV + latinoV + blackV
-			ces.whiteFractions[year][sector] = whiteV / totalForEthnicity
-			ces.latinoFractions[year][sector] = latinoV / totalForEthnicity
-			ces.blackFractions[year][sector] = blackV / totalForEthnicity
+	for year := range ces.ethnicityFractions[eieiorpc.Ethnicity_WhiteOther] {
+		for sector := range ces.ethnicityFractions[eieiorpc.Ethnicity_WhiteOther][year] {
+			totalForSectorEthnicity := float64(0)
+			for dem, _ := range ces.ethnicityFractions {
+				totalForSectorEthnicity += ces.ethnicityFractions[dem][year][sector]
+			}
+			for dem, _ := range ces.ethnicityFractions {
+				ces.ethnicityFractions[dem][year][sector] /= totalForSectorEthnicity
+			}
 		}
 
-		for sector := range ces.decileFractions[0][year] {
-			totalForDeciles := float64(0)
-			for decIdx := 0; decIdx < len(ces.decileFractions); decIdx++ {
-				totalForDeciles += ces.decileFractions[decIdx][year][sector]
+		for sector := range ces.decileFractions[eieiorpc.Decile_Decile_All][year] {
+			totalForSectorDeciles := float64(0)
+			for dem, _ := range ces.decileFractions {
+				totalForSectorDeciles += ces.decileFractions[dem][year][sector]
 			}
-			for decIdx := 0; decIdx < len(ces.decileFractions); decIdx++ {
-				ces.decileFractions[decIdx][year][sector] /= totalForDeciles
+			for dem, _ := range ces.decileFractions {
+				ces.decileFractions[dem][year][sector] /= totalForSectorDeciles
 			}
 		}
 	}
@@ -353,79 +364,69 @@ func (e ErrMissingSector) Error() string {
 	return fmt.Sprintf("ces: missing IO sector '%s'; year %d", e.sector, e.year)
 }
 
-// whiteOtherFrac returns the fraction of total consumption incurred by
-// non-hispanic white people and other races in the given year and IO sector.
-func (c *CES) whiteOtherFrac(year int, IOSector string) (float64, error) {
-	if year > c.EndYear || year < c.StartYear {
-		return math.NaN(), fmt.Errorf("ces: year %d is outside of allowed range %d--%d", year, c.StartYear, c.EndYear)
+func (c *CES) getFrac(dem eieiorpc.Demograph) func(int, string)(float64, error) {
+	var ethnicity eieiorpc.Ethnicity
+	var decile eieiorpc.Decile
+	isEthnicity, isDecile := false, false
+	switch typedDem := dem.Demographic.(type) {
+		case *eieiorpc.Demograph_Ethnicity:
+			ethnicity, isEthnicity = typedDem.Ethnicity, true
+		case *eieiorpc.Demograph_Decile:
+			decile, isDecile = typedDem.Decile, true
 	}
-	v, ok := c.whiteFractions[year][IOSector]
-	if !ok {
-		return math.NaN(), ErrMissingSector{sector: IOSector, year: year}
+
+	var catchAll = func(int, string) (float64, error) { return 1, nil }
+
+	if (isEthnicity && ethnicity == eieiorpc.Ethnicity_Ethnicity_All) ||
+		(isDecile && decile == eieiorpc.Decile_Decile_All) {
+		return catchAll
 	}
-	return v, nil
+
+	var mapForDemograph map[int]map[string]float64
+	var mapOk bool
+	if isEthnicity {
+		mapForDemograph, mapOk = c.ethnicityFractions[ethnicity]
+	} else if isDecile {
+		mapForDemograph, mapOk = c.decileFractions[decile]
+	}
+	return func(year int, IOSector string) (float64, error) {
+		if year > c.EndYear || year < c.StartYear {
+			return math.NaN(), fmt.Errorf("ces: year %d is outside of allowed range %d--%d", year, c.StartYear, c.EndYear)
+		}
+		if !mapOk {
+			return math.NaN(), fmt.Errorf("invalid demograph: %s", dem.String())
+		}
+
+		v, ok := mapForDemograph[year][IOSector]
+		if !ok {
+			return math.NaN(), ErrMissingSector{sector: IOSector, year: year}
+		}
+		return v, nil
+	}
 }
 
-// blackFrac returns the fraction of total consumption incurred by
-// black people in the given year and IO sector.
-func (c *CES) blackFrac(year int, IOSector string) (float64, error) {
-	if year > c.EndYear || year < c.StartYear {
-		return math.NaN(), fmt.Errorf("ces: year %d is outside of allowed range %d--%d", year, c.StartYear, c.EndYear)
-	}
-	v, ok := c.blackFractions[year][IOSector]
-	if !ok {
-		return math.NaN(), ErrMissingSector{sector: IOSector, year: year}
-	}
-	return v, nil
-}
-
-// latinoFrac returns the fraction of total consumption incurred by
-// latino people in the given year and IO sector.
-func (c *CES) latinoFrac(year int, IOSector string) (float64, error) {
-	if year > c.EndYear || year < c.StartYear {
-		return math.NaN(), fmt.Errorf("ces: year %d is outside of allowed range %d--%d", year, c.StartYear, c.EndYear)
-	}
-	v, ok := c.latinoFractions[year][IOSector]
-	if !ok {
-		return math.NaN(), ErrMissingSector{sector: IOSector, year: year}
-	}
-	return v, nil
-}
 
 // DemographicConsumption returns domestic personal consumption final demand
 // plus private final demand for the specified demograph.
 // Personal consumption and private residential expenditures are directly adjusted
-// using the frac function.
+// using the getFrac function.
 // Other private expenditures are adjusted by the scalar:
-//		adj = sum(frac(personal + private_residential)) / sum(personal + private_residential)
+//		adj = sum(getFrac(personal + private_residential)) / sum(personal + private_residential)
 // Acceptable demographs:
 //		Black: People self-identifying as black or African-American.
 //		Hispanic: People self-identifying as Hispanic or Latino.
 //		WhiteOther: People self identifying as white or other races besides black, and not Hispanic.
 //		All: The total population.
 func (c *CES) DemographicConsumption(ctx context.Context, in *eieiorpc.DemographicConsumptionInput) (*eieiorpc.Vector, error) {
-	var frac func(int, string) (float64, error)
-	switch in.Demograph {
-	case eieiorpc.Demograph_Black:
-		frac = c.blackFrac
-	case eieiorpc.Demograph_Hispanic:
-		frac = c.latinoFrac
-	case eieiorpc.Demograph_WhiteOther:
-		frac = c.whiteOtherFrac
-	case eieiorpc.Demograph_All:
-		frac = func(int, string) (float64, error) { return 1, nil }
-	default:
-		return nil, fmt.Errorf("invalid demograph: %s", in.Demograph)
-	}
-	return c.adjustDemand(ctx, in.EndUseMask, in.Year, frac)
+	return c.adjustDemand(ctx, in.EndUseMask, in.Year, c.getFrac(*in.Demograph))
 }
 
 // adjustDemand returns domestic personal consumption final demand plus private final demand
-// after adjusting it using the frac function.
+// after adjusting it using the getFrac function.
 // Personal consumption and private residential expenditures are directly adjusted
-// using the frac function.
+// using the getFrac function.
 // Other private expenditures are adjusted by the scalar:
-//		adj = sum(frac(personal + private_residential)) / sum(personal + private_residential)
+//		adj = sum(getFrac(personal + private_residential)) / sum(personal + private_residential)
 func (c *CES) adjustDemand(ctx context.Context, commodities *eieiorpc.Mask, year int32, frac func(year int, commodity string) (float64, error)) (*eieiorpc.Vector, error) {
 	// First, get the adjusted personal consumption.
 	pc, err := c.eio.FinalDemand(ctx, &eieiorpc.FinalDemandInput{
