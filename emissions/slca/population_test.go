@@ -3,6 +3,7 @@ package slca
 import (
 	"context"
 	"fmt"
+	"github.com/evookelj/inmap/emissions/slca/eieio/ces"
 	"os"
 	"reflect"
 	"testing"
@@ -83,4 +84,35 @@ func TestPopulationIncidence(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("Demograph wrapper", func (t *testing.T) {
+			dem := ces.EthnicityToDemograph(eieiorpc.Ethnicity_Black)
+			test := tests[0]
+			pDem, err := c.PopulationIncidenceDem(context.Background(), &eieiorpc.PopulationIncidenceDemInput{
+				Year:       test.year,
+				Population: dem,
+				HR:         "NasariACS",
+				AQM:        "inmap",
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			pNormal, err := c.PopulationIncidence(context.Background(), &eieiorpc.PopulationIncidenceInput{
+				Year:       test.year,
+				Population: "Black",
+				HR:         "NasariACS",
+				AQM:        "inmap",
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+		if !reflect.DeepEqual(pNormal.Population, pDem.Population) {
+			t.Errorf("population: %v != %v", pNormal.Population, pDem.Population)
+		}
+		if !reflect.DeepEqual(pNormal.Incidence, pDem.Incidence) {
+			t.Errorf("incidence: %v != %v", pNormal.Incidence, pDem.Incidence)
+		}
+
+	})
 }

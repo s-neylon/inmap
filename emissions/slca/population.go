@@ -20,6 +20,7 @@ package slca
 import (
 	"context"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"math"
 	"runtime"
@@ -39,6 +40,59 @@ import (
 
 func init() {
 	gob.Register(popIncidence{})
+}
+
+func DemographToCensusPopColumn(dem *eieiorpc.Demograph) (string, error) {
+	// Missing: "Native", "Asian"
+	ethnicityToCensusPopColumn := map[eieiorpc.Ethnicity]string{
+		eieiorpc.Ethnicity_Ethnicity_All: "TotalPop",
+		eieiorpc.Ethnicity_Black:         "Black",
+		eieiorpc.Ethnicity_Hispanic:      "Latino",
+		eieiorpc.Ethnicity_WhiteOther:    "WhiteNoLat",
+	}
+
+	var ethnicity eieiorpc.Ethnicity
+	// var decile eieiorpc.Decile
+	isEthnicity, isDecile := false, false
+	switch typedDem := dem.Demographic.(type) {
+	case *eieiorpc.Demograph_Ethnicity:
+		ethnicity, isEthnicity = typedDem.Ethnicity, true
+		// case *eieiorpc.Demograph_Decile:
+		// 	decile, isDecile = typedDem.Decile, true
+	}
+
+	var populationString string
+	if isEthnicity {
+		populationString = ethnicityToCensusPopColumn[ethnicity]
+	} else if isDecile {
+		return "", errors.New("support not yet offered for deciles")
+	} else {
+		return "", errors.New("support only offered for ethnicity and decile demographs")
+	}
+	return populationString, nil
+}
+
+// Wrapper for PopulationIncidence that takes demographic instead of string
+func (c *CSTConfig) PopulationIncidenceDem(ctx context.Context, request *eieiorpc.PopulationIncidenceDemInput) (*eieiorpc.PopulationIncidenceDemOutput, error) {
+	populationString, err := DemographToCensusPopColumn(request.Population)
+	if err != nil {
+		return nil, err
+	}
+
+	demOutput, err := c.PopulationIncidence(ctx, &eieiorpc.PopulationIncidenceInput{
+		Year:       request.GetYear(),
+		Population: populationString,
+		HR:         request.GetHR(),
+		AQM:        request.GetAQM(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &eieiorpc.PopulationIncidenceDemOutput{
+		Population: demOutput.GetPopulation(),
+		Incidence:  demOutput.GetIncidence(),
+	}, nil
 }
 
 // PopulationIncidence returns gridded population counts and underlying
@@ -311,6 +365,61 @@ type mortality struct {
 	// Io holds the underlying incidence rate for each population category
 	Io []float64
 }
+
+
+// GetPopulationCounts loads population information from a shapefile, converting it
+// to spatial reference sr. The function outputs an index holding the population
+// information.
+func (c *CSTConfig) GetPopulationCounts(year int, sr *proj.SR) (map[string]int, error) {
+	var err error
+	f, ok := c.censusFile[year]
+	if !ok {
+		return nil, fmt.Errorf("slca: missing population data for year %d", year)
+	}
+	popshp, err := shp.NewDecoder(f)
+	if err != nil {
+		return nil, err
+	}
+	// Create a list of array indices for each population type.
+	popIndices := make(map[string]int)
+	for i, p := range c.CensusPopColumns {
+		popIndices[p] = i
+	}
+
+	popCounts := make(map[string]int, len(c.CensusPopColumns))
+
+	for {
+		_, fields, more := popshp.DecodeRowFields(c.CensusPopColumns...)
+		if !more {
+			break
+		}
+		p := new(population)
+		p.PopData = make([]float64, len(c.CensusPopColumns))
+		for _, pop := range c.CensusPopColumns {
+			s, ok := fields[pop]
+			if !ok {
+				return nil, fmt.Errorf("inmap: loading population shapefile: missing attribute column %s", pop)
+			}
+
+			newPopCount, err := s2f(s)
+			if err != nil {
+				return nil, err
+			}
+			if math.IsNaN(newPopCount) {
+				return nil, fmt.Errorf("inmap: getPopulationCountsn: NaN population value")
+			}
+			popCounts[pop] += int(math.Round(newPopCount))
+		}
+
+
+	}
+	if err := popshp.Error(); err != nil {
+		return nil, err
+	}
+	popshp.Close()
+	return popCounts, nil
+}
+
 
 // loadPopulation loads population information from a shapefile, converting it
 // to spatial reference sr. The function outputs an index holding the population

@@ -42,6 +42,7 @@ service EIEIOrpc {
   rpc EvaluationHealth(EvaluationHealthInput) returns (Vector) {}
   rpc EvaluationConcentrations(EvaluationConcentrationsInput) returns (Vector) {}
   rpc ConcentrationResponseAverage(ConcentrationResponseAverageInput) returns (Vector) {}
+  rpc PopulationIncidenceDem(PopulationIncidenceDemInput) returns (PopulationIncidenceDemOutput) {}
   rpc PopulationIncidence(PopulationIncidenceInput) returns (PopulationIncidenceOutput) {}
 
   rpc FinalDemand(FinalDemandInput) returns (Vector) {}
@@ -305,6 +306,18 @@ message ConcentrationResponseAverageInput {
   string AQM = 4;
 }
 
+message PopulationIncidenceDemInput {
+  int32 Year = 1;
+  Demograph Population = 2;
+  string HR = 3;
+  string AQM = 4;
+}
+
+message PopulationIncidenceDemOutput {
+  repeated double Population = 1;
+  repeated double Incidence = 2;
+}
+
 message PopulationIncidenceInput {
   int32 Year = 1;
   string Population = 2;
@@ -316,3 +329,4 @@ message PopulationIncidenceOutput {
   repeated double Population = 1;
   repeated double Incidence = 2;
 }
+

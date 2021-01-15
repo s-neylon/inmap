@@ -33,6 +33,8 @@
 		EvaluationHealthInput
 		EvaluationConcentrationsInput
 		ConcentrationResponseAverageInput
+		PopulationIncidenceDemInput
+		PopulationIncidenceDemOutput
 		PopulationIncidenceInput
 		PopulationIncidenceOutput
 */
@@ -2987,6 +2989,196 @@ func (m *ConcentrationResponseAverageInput) Unmarshal(rawBytes []byte) (*Concent
 	return m, nil
 }
 
+type PopulationIncidenceDemInput struct {
+	Year       int32
+	Population *Demograph
+	HR         string
+	AQM        string
+}
+
+// GetYear gets the Year of the PopulationIncidenceDemInput.
+func (m *PopulationIncidenceDemInput) GetYear() (x int32) {
+	if m == nil {
+		return x
+	}
+	return m.Year
+}
+
+// GetPopulation gets the Population of the PopulationIncidenceDemInput.
+func (m *PopulationIncidenceDemInput) GetPopulation() (x *Demograph) {
+	if m == nil {
+		return x
+	}
+	return m.Population
+}
+
+// GetHR gets the HR of the PopulationIncidenceDemInput.
+func (m *PopulationIncidenceDemInput) GetHR() (x string) {
+	if m == nil {
+		return x
+	}
+	return m.HR
+}
+
+// GetAQM gets the AQM of the PopulationIncidenceDemInput.
+func (m *PopulationIncidenceDemInput) GetAQM() (x string) {
+	if m == nil {
+		return x
+	}
+	return m.AQM
+}
+
+// MarshalToWriter marshals PopulationIncidenceDemInput to the provided writer.
+func (m *PopulationIncidenceDemInput) MarshalToWriter(writer jspb.Writer) {
+	if m == nil {
+		return
+	}
+
+	if m.Year != 0 {
+		writer.WriteInt32(1, m.Year)
+	}
+
+	if m.Population != nil {
+		writer.WriteMessage(2, func() {
+			m.Population.MarshalToWriter(writer)
+		})
+	}
+
+	if len(m.HR) > 0 {
+		writer.WriteString(3, m.HR)
+	}
+
+	if len(m.AQM) > 0 {
+		writer.WriteString(4, m.AQM)
+	}
+
+	return
+}
+
+// Marshal marshals PopulationIncidenceDemInput to a slice of bytes.
+func (m *PopulationIncidenceDemInput) Marshal() []byte {
+	writer := jspb.NewWriter()
+	m.MarshalToWriter(writer)
+	return writer.GetResult()
+}
+
+// UnmarshalFromReader unmarshals a PopulationIncidenceDemInput from the provided reader.
+func (m *PopulationIncidenceDemInput) UnmarshalFromReader(reader jspb.Reader) *PopulationIncidenceDemInput {
+	for reader.Next() {
+		if m == nil {
+			m = &PopulationIncidenceDemInput{}
+		}
+
+		switch reader.GetFieldNumber() {
+		case 1:
+			m.Year = reader.ReadInt32()
+		case 2:
+			reader.ReadMessage(func() {
+				m.Population = m.Population.UnmarshalFromReader(reader)
+			})
+		case 3:
+			m.HR = reader.ReadString()
+		case 4:
+			m.AQM = reader.ReadString()
+		default:
+			reader.SkipField()
+		}
+	}
+
+	return m
+}
+
+// Unmarshal unmarshals a PopulationIncidenceDemInput from a slice of bytes.
+func (m *PopulationIncidenceDemInput) Unmarshal(rawBytes []byte) (*PopulationIncidenceDemInput, error) {
+	reader := jspb.NewReader(rawBytes)
+
+	m = m.UnmarshalFromReader(reader)
+
+	if err := reader.Err(); err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
+
+type PopulationIncidenceDemOutput struct {
+	Population []float64
+	Incidence  []float64
+}
+
+// GetPopulation gets the Population of the PopulationIncidenceDemOutput.
+func (m *PopulationIncidenceDemOutput) GetPopulation() (x []float64) {
+	if m == nil {
+		return x
+	}
+	return m.Population
+}
+
+// GetIncidence gets the Incidence of the PopulationIncidenceDemOutput.
+func (m *PopulationIncidenceDemOutput) GetIncidence() (x []float64) {
+	if m == nil {
+		return x
+	}
+	return m.Incidence
+}
+
+// MarshalToWriter marshals PopulationIncidenceDemOutput to the provided writer.
+func (m *PopulationIncidenceDemOutput) MarshalToWriter(writer jspb.Writer) {
+	if m == nil {
+		return
+	}
+
+	if len(m.Population) > 0 {
+		writer.WriteFloat64Slice(1, m.Population)
+	}
+
+	if len(m.Incidence) > 0 {
+		writer.WriteFloat64Slice(2, m.Incidence)
+	}
+
+	return
+}
+
+// Marshal marshals PopulationIncidenceDemOutput to a slice of bytes.
+func (m *PopulationIncidenceDemOutput) Marshal() []byte {
+	writer := jspb.NewWriter()
+	m.MarshalToWriter(writer)
+	return writer.GetResult()
+}
+
+// UnmarshalFromReader unmarshals a PopulationIncidenceDemOutput from the provided reader.
+func (m *PopulationIncidenceDemOutput) UnmarshalFromReader(reader jspb.Reader) *PopulationIncidenceDemOutput {
+	for reader.Next() {
+		if m == nil {
+			m = &PopulationIncidenceDemOutput{}
+		}
+
+		switch reader.GetFieldNumber() {
+		case 1:
+			m.Population = reader.ReadFloat64Slice()
+		case 2:
+			m.Incidence = reader.ReadFloat64Slice()
+		default:
+			reader.SkipField()
+		}
+	}
+
+	return m
+}
+
+// Unmarshal unmarshals a PopulationIncidenceDemOutput from a slice of bytes.
+func (m *PopulationIncidenceDemOutput) Unmarshal(rawBytes []byte) (*PopulationIncidenceDemOutput, error) {
+	reader := jspb.NewReader(rawBytes)
+
+	m = m.UnmarshalFromReader(reader)
+
+	if err := reader.Err(); err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
+
 type PopulationIncidenceInput struct {
 	Year       int32
 	Population string
@@ -3202,6 +3394,7 @@ type EIEIOrpcClient interface {
 	EvaluationHealth(ctx context.Context, in *EvaluationHealthInput, opts ...grpcweb.CallOption) (*Vector, error)
 	EvaluationConcentrations(ctx context.Context, in *EvaluationConcentrationsInput, opts ...grpcweb.CallOption) (*Vector, error)
 	ConcentrationResponseAverage(ctx context.Context, in *ConcentrationResponseAverageInput, opts ...grpcweb.CallOption) (*Vector, error)
+	PopulationIncidenceDem(ctx context.Context, in *PopulationIncidenceDemInput, opts ...grpcweb.CallOption) (*PopulationIncidenceDemOutput, error)
 	PopulationIncidence(ctx context.Context, in *PopulationIncidenceInput, opts ...grpcweb.CallOption) (*PopulationIncidenceOutput, error)
 	FinalDemand(ctx context.Context, in *FinalDemandInput, opts ...grpcweb.CallOption) (*Vector, error)
 	EndUseMask(ctx context.Context, in *StringInput, opts ...grpcweb.CallOption) (*Mask, error)
@@ -3386,6 +3579,15 @@ func (c *eIEIOrpcClient) ConcentrationResponseAverage(ctx context.Context, in *C
 	}
 
 	return new(Vector).Unmarshal(resp)
+}
+
+func (c *eIEIOrpcClient) PopulationIncidenceDem(ctx context.Context, in *PopulationIncidenceDemInput, opts ...grpcweb.CallOption) (*PopulationIncidenceDemOutput, error) {
+	resp, err := c.client.RPCCall(ctx, "PopulationIncidenceDem", in.Marshal(), opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return new(PopulationIncidenceDemOutput).Unmarshal(resp)
 }
 
 func (c *eIEIOrpcClient) PopulationIncidence(ctx context.Context, in *PopulationIncidenceInput, opts ...grpcweb.CallOption) (*PopulationIncidenceOutput, error) {
