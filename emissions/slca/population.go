@@ -366,61 +366,6 @@ type mortality struct {
 	Io []float64
 }
 
-
-// GetPopulationCounts loads population information from a shapefile, converting it
-// to spatial reference sr. The function outputs an index holding the population
-// information.
-func (c *CSTConfig) GetPopulationCounts(year int, sr *proj.SR) (map[string]int, error) {
-	var err error
-	f, ok := c.censusFile[year]
-	if !ok {
-		return nil, fmt.Errorf("slca: missing population data for year %d", year)
-	}
-	popshp, err := shp.NewDecoder(f)
-	if err != nil {
-		return nil, err
-	}
-	// Create a list of array indices for each population type.
-	popIndices := make(map[string]int)
-	for i, p := range c.CensusPopColumns {
-		popIndices[p] = i
-	}
-
-	popCounts := make(map[string]int, len(c.CensusPopColumns))
-
-	for {
-		_, fields, more := popshp.DecodeRowFields(c.CensusPopColumns...)
-		if !more {
-			break
-		}
-		p := new(population)
-		p.PopData = make([]float64, len(c.CensusPopColumns))
-		for _, pop := range c.CensusPopColumns {
-			s, ok := fields[pop]
-			if !ok {
-				return nil, fmt.Errorf("inmap: loading population shapefile: missing attribute column %s", pop)
-			}
-
-			newPopCount, err := s2f(s)
-			if err != nil {
-				return nil, err
-			}
-			if math.IsNaN(newPopCount) {
-				return nil, fmt.Errorf("inmap: getPopulationCountsn: NaN population value")
-			}
-			popCounts[pop] += int(math.Round(newPopCount))
-		}
-
-
-	}
-	if err := popshp.Error(); err != nil {
-		return nil, err
-	}
-	popshp.Close()
-	return popCounts, nil
-}
-
-
 // loadPopulation loads population information from a shapefile, converting it
 // to spatial reference sr. The function outputs an index holding the population
 // information.
