@@ -59,6 +59,17 @@ func TestCES(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	t.Run("total consumer units", func (t *testing.T) {
+		total, err := c.DemographicConsumerUnitCount(ces.DecileToDemograph(eieiorpc.Decile_HighestTen), 2015)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := 13344000.0
+		if total != want {
+			t.Errorf("Higheste ten consumer unit count = %.2f; want %.2f", total, want)
+		}
+	})
+
 	t.Run("demand", func(t *testing.T) {
 		d, err := c.DemographicConsumption(context.Background(), &eieiorpc.DemographicConsumptionInput{
 			Demograph: ces.EthnicityToDemograph(eieiorpc.Ethnicity_WhiteOther),

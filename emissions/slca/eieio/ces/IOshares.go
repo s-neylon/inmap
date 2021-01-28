@@ -22,6 +22,7 @@ package ces
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -46,7 +47,11 @@ type CES struct {
 	// fraction of total consumption incurred by demographics
 	// in each year and IO sector
 	ethnicityFractions map[eieiorpc.Ethnicity]map[int]map[string]float64
-	decileFractions map[eieiorpc.Decile]map[int]map[string]float64
+	decileFractions    map[eieiorpc.Decile]map[int]map[string]float64
+
+	// Total number of consumer units included for each demographic by year
+	ethnicityTotals map[eieiorpc.Ethnicity]map[int]float64
+	decileTotals    map[eieiorpc.Decile]map[int]float64
 
 	eio eieiorpc.EIEIOrpcServer
 }
@@ -141,23 +146,27 @@ func NewCES(eio eieiorpc.EIEIOrpcServer, dataDir string) (*CES, error) {
 	const StartYear = 2003
 	const EndYear = 2015
 	ces := CES{
-		StartYear:       StartYear,
-		EndYear:         EndYear,
+		StartYear:          StartYear,
+		EndYear:            EndYear,
 		ethnicityFractions: make(map[eieiorpc.Ethnicity]map[int]map[string]float64),
-		decileFractions: make(map[eieiorpc.Decile]map[int]map[string]float64),
-		eio:             eio,
+		decileFractions:    make(map[eieiorpc.Decile]map[int]map[string]float64),
+		ethnicityTotals:    make(map[eieiorpc.Ethnicity]map[int]float64),
+		decileTotals:       make(map[eieiorpc.Decile]map[int]float64),
+		eio:                eio,
 	}
 
 	for _, val := range eieiorpc.Ethnicity_value {
 		dem := eieiorpc.Ethnicity(val)
 		if dem != eieiorpc.Ethnicity_Ethnicity_All {
 			ces.ethnicityFractions[dem] = make(map[int]map[string]float64)
+			ces.ethnicityTotals[dem] = make(map[int]float64)
 		}
 	}
 	for _, val := range eieiorpc.Decile_value {
 		dem := eieiorpc.Decile(val)
 		if dem != eieiorpc.Decile_Decile_All {
 			ces.decileFractions[dem] = make(map[int]map[string]float64)
+			ces.decileTotals[dem] = make(map[int]float64)
 		}
 	}
 
@@ -195,13 +204,17 @@ func NewCES(eio eieiorpc.EIEIOrpcServer, dataDir string) (*CES, error) {
 		// BY ETHNICITY GROUP
 		demCols := []int{BlackCol, LatinoCol, NonHispanicWhiteCol}
 		ethnicityInputFileName := filepath.Join(dataDir, fmt.Sprintf("hispanic%d.xlsx", year))
-		ethnicityRes, err := getDataForDemographics(ethnicityInputFileName, ceKeys, ioCEMap, EthnicityAggregateCol, demCols)
+		ethConsumerUnitCounts, ethnicityRes, err := getDataForDemographics(ethnicityInputFileName, ceKeys, ioCEMap, EthnicityAggregateCol, demCols)
 		if err != nil {
 			return nil, err
 		}
+
 		ces.ethnicityFractions[eieiorpc.Ethnicity_Black][year] = ethnicityRes[0]
 		ces.ethnicityFractions[eieiorpc.Ethnicity_Hispanic][year] = ethnicityRes[1]
 		ces.ethnicityFractions[eieiorpc.Ethnicity_WhiteOther][year] = ethnicityRes[2]
+		ces.ethnicityTotals[eieiorpc.Ethnicity_Black][year] = (*ethConsumerUnitCounts)[0]
+		ces.ethnicityTotals[eieiorpc.Ethnicity_Hispanic][year] = (*ethConsumerUnitCounts)[1]
+		ces.ethnicityTotals[eieiorpc.Ethnicity_WhiteOther][year] = (*ethConsumerUnitCounts)[2]
 
 		// BY INCOME DECILE
 		if year >= 2014 { // decile data DNE earlier than this
@@ -210,7 +223,7 @@ func NewCES(eio eieiorpc.EIEIOrpcServer, dataDir string) (*CES, error) {
 				decileCols[idx] = 2 + idx // lowest 10% at 2, then second 10% at 3, so on ...
 			}
 			decileInputFileName := filepath.Join(dataDir, fmt.Sprintf("decile%d.xlsx", year))
-			decileResults, err := getDataForDemographics(decileInputFileName, ceKeys, ioCEMap, DecileAggregateCol, decileCols)
+			decConsumerUnitCounts, decileResults, err := getDataForDemographics(decileInputFileName, ceKeys, ioCEMap, DecileAggregateCol, decileCols)
 			if err != nil {
 				return nil, err
 			}
@@ -220,6 +233,7 @@ func NewCES(eio eieiorpc.EIEIOrpcServer, dataDir string) (*CES, error) {
 				// lowest 10% = 0, second 10% = 1, ...
 				decile := eieiorpc.Decile(decileIdx)
 				ces.decileFractions[decile][year] = decileResult
+				ces.decileTotals[decile][year] = (*decConsumerUnitCounts)[decileIdx]
 			}
 		}
 	}
@@ -243,9 +257,9 @@ func DecileToDemograph(dec eieiorpc.Decile) *eieiorpc.Demograph {
 	}
 }
 
-
 // Returns IO data for demographics in the order they are provided
-func getDataForDemographics(inputFileName string, ceKeys []string, ioCEMap map[string][]string, AggregateCol int, demCols []int) ([]map[string]float64, error) {
+// Returns population count, currently providing total number of consumer units
+func getDataForDemographics(inputFileName string, ceKeys []string, ioCEMap map[string][]string, AggregateCol int, demCols []int) (*[]float64, []map[string]float64, error) {
 	// Flags specific string values to be replaced when looping through data
 	// a Value is too small to display.
 	// b Data are likely to have large sampling errors.
@@ -262,7 +276,7 @@ func getDataForDemographics(inputFileName string, ceKeys []string, ioCEMap map[s
 	// Open raw CE data files
 	inputFile, err := xlsx.OpenFile(inputFileName)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	cesSheet := inputFile.Sheets[0]
 
@@ -270,6 +284,11 @@ func getDataForDemographics(inputFileName string, ceKeys []string, ioCEMap map[s
 	for range demCols {
 		dataMapCES = append(dataMapCES, make(map[string][]float64))
 	}
+
+	// NOTE: Stores number of consumer units for each demographic
+	// Could easily change to store total individual population count, by taking
+	// number of consumer units * average number of individuals in unit
+	consumerUnitsTotal := make([]float64, len(demCols))
 
 	for rowIdx, row := range cesSheet.Rows {
 
@@ -281,13 +300,25 @@ func getDataForDemographics(inputFileName string, ceKeys []string, ioCEMap map[s
 		// The key is the CES category.
 		key := strings.Trim(row.Cells[0].Value, " ")
 
+		// total population idea
+		if strings.Contains(strings.ToLower(key), "number of consumer units") {
+			for demIdx, colNum := range demCols {
+				numConsumerUnits, err := s2f(row.Cells[colNum].Value)
+				if err != nil {
+					return nil, nil, err
+				}
+				// survey lists num consumer units in thousands
+				consumerUnitsTotal[demIdx] = numConsumerUnits * 1000
+			}
+		}
+
 		// For each CE category that we are interested in, find the
 		// corresponding row in the raw CE data files and pull spending
 		// share and aggregate spending numbers.
 		for _, line := range ceKeys {
 			match, err := regexp.MatchString("^"+line+"$", key)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			if match {
 
@@ -308,7 +339,7 @@ func getDataForDemographics(inputFileName string, ceKeys []string, ioCEMap map[s
 					for demIdx, colNum := range demCols {
 						demValue, err := s2f(rowOfMeans.Cells[colNum].Value)
 						if err != nil {
-							return nil, err
+							return nil, nil, err
 						}
 						aggregate += demValue
 						meanExpenditureByDem[demIdx] = demValue
@@ -317,13 +348,13 @@ func getDataForDemographics(inputFileName string, ceKeys []string, ioCEMap map[s
 					var err error
 					aggregate, err = s2f(row.Cells[AggregateCol].Value)
 					if err != nil {
-						return nil, err
+						return nil, nil, err
 					}
 
 					for demIdx, colNum := range demCols {
 						colShare, err := s2f(row.Cells[colNum].Value)
 						if err != nil {
-							return nil, err
+							return nil, nil, err
 						}
 						meanExpenditureByDem[demIdx] = aggregate * colShare / 100
 					}
@@ -331,7 +362,7 @@ func getDataForDemographics(inputFileName string, ceKeys []string, ioCEMap map[s
 
 				for demIdx, meanExpenditure := range meanExpenditureByDem {
 					dataMapCES[demIdx][key] = append(dataMapCES[demIdx][key], meanExpenditure)
-					dataMapCES[demIdx][key] = append(dataMapCES[demIdx][key], meanExpenditure / aggregate)
+					dataMapCES[demIdx][key] = append(dataMapCES[demIdx][key], meanExpenditure/aggregate)
 				}
 			}
 		}
@@ -343,7 +374,7 @@ func getDataForDemographics(inputFileName string, ceKeys []string, ioCEMap map[s
 		demFinal := weightedAvgShares(demIO)
 		finalResultsByDem = append(finalResultsByDem, demFinal)
 	}
-	return finalResultsByDem, nil
+	return &consumerUnitsTotal, finalResultsByDem, nil
 }
 
 func (ces *CES) normalize() {
@@ -381,15 +412,15 @@ func (e ErrMissingSector) Error() string {
 	return fmt.Sprintf("ces: missing IO sector '%s'; year %d", e.sector, e.year)
 }
 
-func (c *CES) getFrac(dem eieiorpc.Demograph) func(int, string)(float64, error) {
+func (c *CES) getFrac(dem eieiorpc.Demograph) func(int, string) (float64, error) {
 	var ethnicity eieiorpc.Ethnicity
 	var decile eieiorpc.Decile
 	isEthnicity, isDecile := false, false
 	switch typedDem := dem.Demographic.(type) {
-		case *eieiorpc.Demograph_Ethnicity:
-			ethnicity, isEthnicity = typedDem.Ethnicity, true
-		case *eieiorpc.Demograph_Decile:
-			decile, isDecile = typedDem.Decile, true
+	case *eieiorpc.Demograph_Ethnicity:
+		ethnicity, isEthnicity = typedDem.Ethnicity, true
+	case *eieiorpc.Demograph_Decile:
+		decile, isDecile = typedDem.Decile, true
 	}
 
 	var catchAll = func(int, string) (float64, error) { return 1, nil }
@@ -422,7 +453,6 @@ func (c *CES) getFrac(dem eieiorpc.Demograph) func(int, string)(float64, error) 
 	}
 }
 
-
 // DemographicConsumption returns domestic personal consumption final demand
 // plus private final demand for the specified demograph.
 // Personal consumption and private residential expenditures are directly adjusted
@@ -436,6 +466,25 @@ func (c *CES) getFrac(dem eieiorpc.Demograph) func(int, string)(float64, error) 
 //		All: The total population.
 func (c *CES) DemographicConsumption(ctx context.Context, in *eieiorpc.DemographicConsumptionInput) (*eieiorpc.Vector, error) {
 	return c.adjustDemand(ctx, in.EndUseMask, in.Year, c.getFrac(*in.Demograph))
+}
+
+func (c *CES) DemographicConsumerUnitCount(dem *eieiorpc.Demograph, year int) (float64, error) {
+	var ethnicity eieiorpc.Ethnicity
+	var decile eieiorpc.Decile
+	isEthnicity, isDecile := false, false
+	switch typedDem := dem.Demographic.(type) {
+	case *eieiorpc.Demograph_Ethnicity:
+		ethnicity, isEthnicity = typedDem.Ethnicity, true
+	case *eieiorpc.Demograph_Decile:
+		decile, isDecile = typedDem.Decile, true
+	}
+
+	if isDecile {
+		return c.decileTotals[decile][year], nil
+	} else if isEthnicity {
+		return c.ethnicityTotals[ethnicity][year], nil
+	}
+	return 0, errors.New("Expected demograph to be decile or ethnicity")
 }
 
 // adjustDemand returns domestic personal consumption final demand plus private final demand

@@ -57,7 +57,7 @@ require (
 	gonum.org/v1/gonum v0.0.0-20191009222026-5d5638e6749a
 	gonum.org/v1/plot v0.0.0-20190526055220-ccfad0c86201
 	google.golang.org/grpc v1.27.0
-	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.0.1 // indirect
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0 // indirect
 	google.golang.org/protobuf v1.25.0
 	honnef.co/go/js/dom v0.0.0-20180323154144-6da835bec70f
 	k8s.io/api v0.19.0
