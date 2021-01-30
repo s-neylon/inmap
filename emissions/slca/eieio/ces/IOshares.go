@@ -49,9 +49,9 @@ type CES struct {
 	ethnicityFractions map[eieiorpc.Ethnicity]map[int]map[string]float64
 	decileFractions    map[eieiorpc.Decile]map[int]map[string]float64
 
-	// Total number of consumer units included for each demographic by year
-	ethnicityTotals map[eieiorpc.Ethnicity]map[int]float64
-	decileTotals    map[eieiorpc.Decile]map[int]float64
+	// Total number of individuals in CES study by demographic and year
+	ethnicityTotals map[eieiorpc.Ethnicity]map[int]int
+	decileTotals    map[eieiorpc.Decile]map[int]int
 
 	eio eieiorpc.EIEIOrpcServer
 }
@@ -150,8 +150,8 @@ func NewCES(eio eieiorpc.EIEIOrpcServer, dataDir string) (*CES, error) {
 		EndYear:            EndYear,
 		ethnicityFractions: make(map[eieiorpc.Ethnicity]map[int]map[string]float64),
 		decileFractions:    make(map[eieiorpc.Decile]map[int]map[string]float64),
-		ethnicityTotals:    make(map[eieiorpc.Ethnicity]map[int]float64),
-		decileTotals:       make(map[eieiorpc.Decile]map[int]float64),
+		ethnicityTotals:    make(map[eieiorpc.Ethnicity]map[int]int),
+		decileTotals:       make(map[eieiorpc.Decile]map[int]int),
 		eio:                eio,
 	}
 
@@ -159,14 +159,14 @@ func NewCES(eio eieiorpc.EIEIOrpcServer, dataDir string) (*CES, error) {
 		dem := eieiorpc.Ethnicity(val)
 		if dem != eieiorpc.Ethnicity_Ethnicity_All {
 			ces.ethnicityFractions[dem] = make(map[int]map[string]float64)
-			ces.ethnicityTotals[dem] = make(map[int]float64)
+			ces.ethnicityTotals[dem] = make(map[int]int)
 		}
 	}
 	for _, val := range eieiorpc.Decile_value {
 		dem := eieiorpc.Decile(val)
 		if dem != eieiorpc.Decile_Decile_All {
 			ces.decileFractions[dem] = make(map[int]map[string]float64)
-			ces.decileTotals[dem] = make(map[int]float64)
+			ces.decileTotals[dem] = make(map[int]int)
 		}
 	}
 
@@ -257,9 +257,10 @@ func DecileToDemograph(dec eieiorpc.Decile) *eieiorpc.Demograph {
 	}
 }
 
-// Returns IO data for demographics in the order they are provided
-// Returns population count, currently providing total number of consumer units
-func getDataForDemographics(inputFileName string, ceKeys []string, ioCEMap map[string][]string, AggregateCol int, demCols []int) (*[]float64, []map[string]float64, error) {
+// Returns
+// - population count (as total # of individuals)
+// - IO data for demographics in the order they are provided
+func getDataForDemographics(inputFileName string, ceKeys []string, ioCEMap map[string][]string, AggregateCol int, demCols []int) (*[]int, []map[string]float64, error) {
 	// Flags specific string values to be replaced when looping through data
 	// a Value is too small to display.
 	// b Data are likely to have large sampling errors.
@@ -285,10 +286,10 @@ func getDataForDemographics(inputFileName string, ceKeys []string, ioCEMap map[s
 		dataMapCES = append(dataMapCES, make(map[string][]float64))
 	}
 
-	// NOTE: Stores number of consumer units for each demographic
-	// Could easily change to store total individual population count, by taking
-	// number of consumer units * average number of individuals in unit
+	// Stores number of consumer units for each demographic
+	// total pop count for demograph = (# consumer units) * (average # individuals in unit)
 	consumerUnitsTotal := make([]float64, len(demCols))
+	averageNumIndividuals := make([]float64, len(demCols))
 
 	for rowIdx, row := range cesSheet.Rows {
 
@@ -300,15 +301,26 @@ func getDataForDemographics(inputFileName string, ceKeys []string, ioCEMap map[s
 		// The key is the CES category.
 		key := strings.Trim(row.Cells[0].Value, " ")
 
-		// total population idea
+		// total # consumer units
 		if strings.Contains(strings.ToLower(key), "number of consumer units") {
 			for demIdx, colNum := range demCols {
 				numConsumerUnits, err := s2f(row.Cells[colNum].Value)
 				if err != nil {
 					return nil, nil, err
 				}
-				// survey lists num consumer units in thousands
+				// survey lists consumer units in thousands
 				consumerUnitsTotal[demIdx] = numConsumerUnits * 1000
+			}
+		}
+
+		// average number in consumer unit
+		if strings.Contains(strings.ToLower(key), "people") {
+			for demIdx, colNum := range demCols {
+				numIndividuals, err := s2f(row.Cells[colNum].Value)
+				if err != nil {
+					return nil, nil, err
+				}
+				averageNumIndividuals[demIdx] = numIndividuals
 			}
 		}
 
@@ -374,7 +386,14 @@ func getDataForDemographics(inputFileName string, ceKeys []string, ioCEMap map[s
 		demFinal := weightedAvgShares(demIO)
 		finalResultsByDem = append(finalResultsByDem, demFinal)
 	}
-	return &consumerUnitsTotal, finalResultsByDem, nil
+
+	totalPop := make([]int, len(demCols))
+	for demIdx, numConsumerUnits := range consumerUnitsTotal {
+		totalPopForDem := numConsumerUnits * averageNumIndividuals[demIdx]
+		totalPop[demIdx] = int(totalPopForDem) // def integer b/c consumer units in thousands
+	}
+
+	return &totalPop, finalResultsByDem, nil
 }
 
 func (ces *CES) normalize() {
@@ -468,7 +487,7 @@ func (c *CES) DemographicConsumption(ctx context.Context, in *eieiorpc.Demograph
 	return c.adjustDemand(ctx, in.EndUseMask, in.Year, c.getFrac(*in.Demograph))
 }
 
-func (c *CES) DemographicConsumerUnitCount(dem *eieiorpc.Demograph, year int) (float64, error) {
+func (c *CES) TotalPopulationCount(dem *eieiorpc.Demograph, year int) (int, error) {
 	var ethnicity eieiorpc.Ethnicity
 	var decile eieiorpc.Decile
 	isEthnicity, isDecile := false, false

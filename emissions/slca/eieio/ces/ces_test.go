@@ -60,13 +60,13 @@ func TestCES(t *testing.T) {
 	}
 
 	t.Run("total consumer units", func (t *testing.T) {
-		total, err := c.DemographicConsumerUnitCount(ces.DecileToDemograph(eieiorpc.Decile_HighestTen), 2015)
+		total, err := c.TotalPopulationCount(ces.DecileToDemograph(eieiorpc.Decile_HighestTen), 2015)
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := 13344000.0
+		want := 42700800 // = num consumer units * avg num individuals = 13344000 * 3.2
 		if total != want {
-			t.Errorf("Higheste ten consumer unit count = %.2f; want %.2f", total, want)
+			t.Errorf("Highest ten consumer unit count = %d; want %d", total, want)
 		}
 	})
 
