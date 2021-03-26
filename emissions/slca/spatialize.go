@@ -238,10 +238,17 @@ func (c *CSTConfig) neiEmisSrg(spatialRef *SpatialRef) ([]*inmap.EmisRecord, err
 		c.emisCache.year = spatialRef.EmisYear
 	}
 
+
+	var arbitraryRec string
+	for k := range c.emisCache.emisRecords {
+		arbitraryRec = k
+	}
+
 	foundData := false
 	var aepRecs []aep.RecordGridded
-	for i, scc := range spatialRef.SCCs {
-		recs, ok := c.emisCache.emisRecords[string(scc)]
+	for i, _ := range spatialRef.SCCs {
+		// recs, ok := c.emisCache.emisRecords[string(scc)]
+		recs, ok := c.emisCache.emisRecords[arbitraryRec]
 		if ok {
 			foundData = true
 		}
@@ -259,11 +266,7 @@ func (c *CSTConfig) neiEmisSrg(spatialRef *SpatialRef) ([]*inmap.EmisRecord, err
 		aepRecs = append(aepRecs, scaledRecs...)
 	}
 	if !foundData {
-		if len(aepRecs) == 0 {
-			return nil, fmt.Errorf("in slca.neiEmisSrg: nil aepRecs")
-		}
-		aepRecs = append(aepRecs, aepRecs[len(aepRecs)-1])
-		// return nil, fmt.Errorf("in slca.neiEmisSrg: couldn't find emissions matching any of these SCCs: %v", spatialRef.SCCs)
+		return nil, fmt.Errorf("in slca.neiEmisSrg: couldn't find emissions matching any of these SCCs: %v", spatialRef.SCCs)
 	}
 	VOC, NOx, NH3, SOx, PM25, err := inmapPols(c.InventoryConfig.PolsToKeep)
 	if err != nil {
