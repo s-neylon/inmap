@@ -259,7 +259,11 @@ func (c *CSTConfig) neiEmisSrg(spatialRef *SpatialRef) ([]*inmap.EmisRecord, err
 		aepRecs = append(aepRecs, scaledRecs...)
 	}
 	if !foundData {
-		return nil, fmt.Errorf("in slca.neiEmisSrg: couldn't find emissions matching any of these SCCs: %v", spatialRef.SCCs)
+		if len(aepRecs) == 0 {
+			return nil, fmt.Errorf("in slca.neiEmisSrg: nil aepRecs")
+		}
+		aepRecs = append(aepRecs, aepRecs[len(aepRecs)-1])
+		// return nil, fmt.Errorf("in slca.neiEmisSrg: couldn't find emissions matching any of these SCCs: %v", spatialRef.SCCs)
 	}
 	VOC, NOx, NH3, SOx, PM25, err := inmapPols(c.InventoryConfig.PolsToKeep)
 	if err != nil {
