@@ -366,6 +366,124 @@ type mortality struct {
 	Io []float64
 }
 
+
+func incomeCategoryToDeciles(categoryLowerBounds []int, decileLowerBounds []int) [][]float64{
+	contributionToDecile := make([][]float64, len(categoryLowerBounds))
+	for i := range contributionToDecile {
+		contributionToDecile[i] = make([]float64, len(decileLowerBounds))
+	}
+
+	currDecileIdx := 0
+	for i := 0; i < len(categoryLowerBounds) - 1; i++ {
+		lowerBound := categoryLowerBounds[i]
+		upperBound := categoryLowerBounds[i+1]
+
+		var currDecileEnd int
+		if currDecileIdx == len(decileLowerBounds) - 1 {
+			currDecileEnd = int(math.Inf(1))
+		} else {
+			currDecileEnd = decileLowerBounds[currDecileIdx+1]
+		}
+
+		if (lowerBound <= currDecileEnd) && (currDecileEnd <= upperBound) {
+			percentBelowDecile := float64(currDecileEnd- lowerBound)/float64(upperBound - lowerBound)
+			contributionToDecile[i][currDecileIdx] = percentBelowDecile
+			contributionToDecile[i][currDecileIdx + 1] = 1 - percentBelowDecile
+			currDecileIdx += 1
+		} else {
+			contributionToDecile[i][currDecileIdx] = 1
+		}
+	}
+	contributionToDecile[len(categoryLowerBounds) - 1][currDecileIdx] = 1
+
+	return contributionToDecile
+}
+
+
+// loadPopIncome loads population income information from a shapefile, converting it
+// to spatial reference sr. The function outputs an index holding the income population
+// information.
+func (c *CSTConfig) loadPopIncome(year int, sr *proj.SR) (*rtree.Rtree, map[string]int, error) {
+	var err error
+	f, ok := c.censusFile[year]
+	if !ok {
+		return nil, nil, fmt.Errorf("slca: missing population data for year %d", year)
+	}
+	popshp, err := shp.NewDecoder(f)
+	if err != nil {
+		return nil, nil, err
+	}
+	popsr, err := popshp.SR()
+	if err != nil {
+		return nil, nil, err
+	}
+	trans, err := popsr.NewTransform(sr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Create a list of array indices for each decile
+	decileIndices := make(map[string]int)
+	for i := 0; i < 100; i += 10 {
+		decileIndices[fmt.Sprintf("%d - %d%", i, i + 10)] = i
+	}
+
+	CATEGORY_LOWER_BOUNDS := []int{0, 10000, 15000, 20000, 25000, 30000, 35000, 40000,
+		45000, 50000, 60000, 75000, 100000, 125000, 150000, 200000}
+	DECILE_LOWER_BOUNDS := []int{0, 11890, 19572, 27964, 37638, 49452, 62587, 79640,
+		103507, 144180}
+	catToDecile := incomeCategoryToDeciles(CATEGORY_LOWER_BOUNDS, DECILE_LOWER_BOUNDS)
+
+	pop := rtree.NewTree(25, 50)
+	for {
+		g, fields, more := popshp.DecodeRowFields(c.CensusIncomeCatColumns...)
+		if !more {
+			break
+		}
+		p := new(population)
+		p.PopData = make([]float64, len(DECILE_LOWER_BOUNDS))
+		currDecileIdx := 0
+		for i, pop := range c.CensusIncomeCatColumns {
+			s, ok := fields[pop]
+			if !ok {
+				return nil, nil, fmt.Errorf("inmap: loading income population shapefile: missing attribute column %s", pop)
+			}
+			var categoryValue float64
+			categoryValue, err = s2f(s)
+			if err != nil {
+				return nil, nil, err
+			}
+			if math.IsNaN(categoryValue) {
+				return nil, nil, fmt.Errorf("inmap: loadPopIncome: NaN population value")
+			}
+
+			// convert categories to deciles
+			for catToDecile[i][currDecileIdx] != 0 {
+				p.PopData[currDecileIdx] += categoryValue * catToDecile[i][currDecileIdx]
+				currDecileIdx += 1
+			}
+			currDecileIdx -= 1 // last one was one too far -- move back
+		}
+		gg, err := g.Transform(trans)
+		if err != nil {
+			return nil, nil, err
+		}
+		switch gg.(type) {
+		case geom.Polygonal:
+			p.Polygonal = gg.(geom.Polygonal)
+		default:
+			return nil, nil, fmt.Errorf("inmap: loadPopIncome: population shapes need to be polygons")
+		}
+		pop.Insert(p)
+	}
+	if err := popshp.Error(); err != nil {
+		return nil, nil, err
+	}
+	popshp.Close()
+	return pop, decileIndices, nil
+}
+
+
 // loadPopulation loads population information from a shapefile, converting it
 // to spatial reference sr. The function outputs an index holding the population
 // information.
@@ -387,6 +505,7 @@ func (c *CSTConfig) loadPopulation(year int, sr *proj.SR) (*rtree.Rtree, map[str
 	if err != nil {
 		return nil, nil, err
 	}
+
 	// Create a list of array indices for each population type.
 	popIndices := make(map[string]int)
 	for i, p := range c.CensusPopColumns {

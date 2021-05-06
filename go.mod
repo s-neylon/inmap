@@ -7,7 +7,6 @@ require (
 	github.com/Knetic/govaluate v3.0.0+incompatible
 	github.com/aws/aws-sdk-go v1.17.6
 	github.com/cenkalti/backoff v2.0.0+incompatible
-	github.com/cpuguy83/go-md2man v1.0.9-0.20180619205630-691ee98543af // indirect
 	github.com/ctessum/atmos v0.0.0-20170526022537-cba69f7ca647
 	github.com/ctessum/cdf v0.0.0-20181201011353-edced208ea9d
 	github.com/ctessum/geom v0.2.10
@@ -35,11 +34,7 @@ require (
 	github.com/kr/pretty v0.2.0
 	github.com/lnashier/viper v0.0.0-20180730210402-cc7336125d12
 	github.com/mattn/go-sqlite3 v1.11.0
-	github.com/neelance/sourcemap v0.0.0-20200213170602-2833bce08e4c // indirect
-	github.com/norunners/vert v0.0.0-20190616030331-d9c8c2aacdf1 // indirect
 	github.com/rs/cors v1.3.0 // indirect
-	github.com/russross/blackfriday v2.0.0+incompatible // indirect
-	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/sirupsen/logrus v1.3.0
 	github.com/skratchdot/open-golang v0.0.0-20160302144031-75fb7ed4208c
 	github.com/spf13/cast v1.3.0
@@ -47,7 +42,6 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/tealeg/xlsx v1.0.3
 	gocloud.dev v0.9.0
-	golang.org/dl v0.0.0-20201217181409-aeefed14b4e2 // indirect
 	golang.org/x/build v0.0.0-20190226180436-80ca8d25ddd4
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/net v0.0.0-20201021035429-f5854403a974
@@ -57,7 +51,6 @@ require (
 	gonum.org/v1/gonum v0.0.0-20191009222026-5d5638e6749a
 	gonum.org/v1/plot v0.0.0-20190526055220-ccfad0c86201
 	google.golang.org/grpc v1.27.0
-	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0 // indirect
 	google.golang.org/protobuf v1.25.0
 	honnef.co/go/js/dom v0.0.0-20180323154144-6da835bec70f
 	k8s.io/api v0.19.0
