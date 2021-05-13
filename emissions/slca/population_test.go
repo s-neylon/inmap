@@ -19,6 +19,47 @@ func init() {
 	os.Setenv("INMAP_ROOT_DIR", "../../")
 }
 
+func TestPopulationCount(t *testing.T) {
+	f, err := os.Open("testdata/test_config.toml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := new(CSTConfig)
+	if _, err = toml.DecodeReader(f, c); err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Setup(epi.NasariACS); err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		year int32
+		pop  []float64
+	}{
+		{
+			year: 2001,
+			pop:  []float64{50000, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		},
+		{
+			year: 2014,
+			pop:  []float64{100000, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprint(test.year), func(t *testing.T) {
+			p, err := c.PopulationCount(context.Background(), &eieiorpc.PopulationCountInput{
+				Year: test.year, Population: "00-10%", AQM: "inmap"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(test.pop, p.Population) {
+				t.Errorf("population: %v != %v", p.Population, test.pop)
+			}
+		})
+	}
+}
+
 func TestPopulationIncidence(t *testing.T) {
 	f, err := os.Open("testdata/test_config.toml")
 	if err != nil {

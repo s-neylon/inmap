@@ -95,6 +95,27 @@ func (c *CSTConfig) PopulationIncidenceDem(ctx context.Context, request *eieiorp
 	}, nil
 }
 
+func (c *CSTConfig) PopulationCount(ctx context.Context, request *eieiorpc.PopulationCountInput) (*eieiorpc.PopulationCountOutput, error) {
+	c.loadPopulationOnce.Do(func() {
+		c.popRequestCache = loadCacheOnce(c.popIncomeWorker, 1, 1, c.SpatialCache,
+			requestcache.MarshalGob, requestcache.UnmarshalGob)
+	})
+	r := c.popRequestCache.NewRequest(ctx, struct {
+		aqm  string
+		year int
+	}{year: int(request.Year), aqm: request.AQM}, fmt.Sprintf("populationIncomeCount_%s_%d", request.AQM, request.Year))
+	resultI, err := r.Result()
+	if err != nil {
+		return nil, err
+	}
+	result := resultI.(map[string][]float64)
+	p, ok := result[request.Population]
+	if !ok {
+		return nil, fmt.Errorf("slca: invalid population type %s", request.Population)
+	}
+	return &eieiorpc.PopulationCountOutput{Population: p}, nil
+}
+
 // PopulationIncidence returns gridded population counts and underlying
 // mortality incidence rates for the type specified by popType.
 // Valid population types are specified by the CensusPopColumns attribute of the
@@ -131,6 +152,22 @@ func (c *CSTConfig) PopulationIncidence(ctx context.Context, request *eieiorpc.P
 
 type popIncidence struct {
 	P, Io map[string][]float64
+}
+
+func (c *CSTConfig) popIncomeWorker(_ context.Context, aqmYearI interface{}) (interface{}, error) {
+	aqmYear := aqmYearI.(struct {
+		aqm string
+		year int
+	})
+	pop, popIndices, err := c.loadPopIncomeSpatial(aqmYear.year)
+	if err != nil {
+		return nil, err
+	}
+	griddedPop, err := c.gridPopulation(pop, aqmYear.aqm, popIndices)
+	if err != nil {
+		return nil, err
+	}
+	return griddedPop, nil
 }
 
 // popIncidenceWorker calculates the population and underlying mortality incidence rate.
@@ -331,6 +368,18 @@ func (c *CSTConfig) griddedIncidence(aqm string, mortIndex, popIndex *rtree.Rtre
 	return o, nil
 }
 
+func (c *CSTConfig) loadPopIncomeSpatial(year int) (*rtree.Rtree, map[string]int, error) {
+	gridSR, err := proj.Parse(c.SpatialConfig.OutputSR)
+	if err != nil {
+		return nil, nil, fmt.Errorf("slca: while parsing OutputSR: %v", err)
+	}
+	pop, popIndex, err := c.loadPopIncome(year, gridSR)
+	if err != nil {
+		return nil, nil, fmt.Errorf("slca: while loading population: %v", err)
+	}
+	return pop, popIndex, nil
+}
+
 // loadPopMort loads the population and mortality rate data from the shapefiles
 // specified in the receiver.
 func (c *CSTConfig) loadPopMort(year int) (*rtree.Rtree, map[string]int, []*mortality, map[string]int, error) {
@@ -424,15 +473,16 @@ func (c *CSTConfig) loadPopIncome(year int, sr *proj.SR) (*rtree.Rtree, map[stri
 
 	// Create a list of array indices for each decile
 	decileIndices := make(map[string]int)
-	for i := 0; i < 100; i += 10 {
-		decileIndices[fmt.Sprintf("%d - %d%", i, i + 10)] = i
+	for i := 0; i < 10; i++ {
+		decile := i*10
+		decileIndices[fmt.Sprintf("%02d-%02d%%", decile, decile + 10)] = i
 	}
 
-	CATEGORY_LOWER_BOUNDS := []int{0, 10000, 15000, 20000, 25000, 30000, 35000, 40000,
+	CategoryLowerBounds := []int{0, 10000, 15000, 20000, 25000, 30000, 35000, 40000,
 		45000, 50000, 60000, 75000, 100000, 125000, 150000, 200000}
-	DECILE_LOWER_BOUNDS := []int{0, 11890, 19572, 27964, 37638, 49452, 62587, 79640,
+	DecileLowerBounds := []int{0, 11890, 19572, 27964, 37638, 49452, 62587, 79640,
 		103507, 144180}
-	catToDecile := incomeCategoryToDeciles(CATEGORY_LOWER_BOUNDS, DECILE_LOWER_BOUNDS)
+	catToDecile := incomeCategoryToDeciles(CategoryLowerBounds, DecileLowerBounds)
 
 	pop := rtree.NewTree(25, 50)
 	for {
@@ -441,7 +491,7 @@ func (c *CSTConfig) loadPopIncome(year int, sr *proj.SR) (*rtree.Rtree, map[stri
 			break
 		}
 		p := new(population)
-		p.PopData = make([]float64, len(DECILE_LOWER_BOUNDS))
+		p.PopData = make([]float64, len(DecileLowerBounds))
 		currDecileIdx := 0
 		for i, pop := range c.CensusIncomeCatColumns {
 			s, ok := fields[pop]
@@ -461,6 +511,9 @@ func (c *CSTConfig) loadPopIncome(year int, sr *proj.SR) (*rtree.Rtree, map[stri
 			for catToDecile[i][currDecileIdx] != 0 {
 				p.PopData[currDecileIdx] += categoryValue * catToDecile[i][currDecileIdx]
 				currDecileIdx += 1
+				if currDecileIdx == 10 {
+					break
+				}
 			}
 			currDecileIdx -= 1 // last one was one too far -- move back
 		}

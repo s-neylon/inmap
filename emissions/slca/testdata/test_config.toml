@@ -13,6 +13,24 @@ DefaultFIPS = "00000"
 # be included as population estimates in the model. They can be population
 # of different demographics or for different population scenarios.
 CensusPopColumns= ["TotalPop", "WhiteNoLat", "Black", "Native", "Asian", "Latino"]
+CensusIncomeCatColumns= [ # Use asian as placeholder b/c zero value
+    "TotalPop",
+    "Asian",
+    "Asian",
+    "Asian",
+    "Asian",
+    "Asian",
+    "Asian",
+    "Asian",
+    "Asian",
+    "Asian",
+    "Asian",
+    "Asian",
+    "Asian",
+    "Asian",
+    "Asian",
+    "Asian"
+]
 
 FugitiveDustSectors = ["test_adj"]
 [FugitiveDustAdjustment]
