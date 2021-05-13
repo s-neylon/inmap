@@ -14,9 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with InMAP.  If not, see <http://www.gnu.org/licenses/>.
 
+/*
+  Compile by: protoc eieio.proto --go_out=plugins=grpc:eieiorpc --gopherjs_out=plugins=grpc:eieiorpc/eieiorpcjs
+
+ */
+
 syntax = "proto3";
 
 package eieiorpc;
+option go_package = "./;eieiorpc";
 
 service EIEIOrpc {
   rpc EndUseGroups(Selection) returns (Selectors) {}
@@ -42,6 +48,7 @@ service EIEIOrpc {
   rpc EvaluationHealth(EvaluationHealthInput) returns (Vector) {}
   rpc EvaluationConcentrations(EvaluationConcentrationsInput) returns (Vector) {}
   rpc ConcentrationResponseAverage(ConcentrationResponseAverageInput) returns (Vector) {}
+  rpc PopulationCount(PopulationCountInput) returns (PopulationCountOutput) {}
   rpc PopulationIncidenceDem(PopulationIncidenceDemInput) returns (PopulationIncidenceDemOutput) {}
   rpc PopulationIncidence(PopulationIncidenceInput) returns (PopulationIncidenceOutput) {}
 
@@ -304,6 +311,16 @@ message ConcentrationResponseAverageInput {
   string Population = 2;
   string HR = 3;
   string AQM = 4;
+}
+
+message PopulationCountInput {
+  int32 Year = 1;
+  string Population = 2;
+  string AQM = 3;
+}
+
+message PopulationCountOutput {
+  repeated double Population = 1;
 }
 
 message PopulationIncidenceDemInput {

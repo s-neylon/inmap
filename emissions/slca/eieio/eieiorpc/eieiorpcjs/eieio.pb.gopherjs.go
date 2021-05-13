@@ -33,6 +33,8 @@
 		EvaluationHealthInput
 		EvaluationConcentrationsInput
 		ConcentrationResponseAverageInput
+		PopulationCountInput
+		PopulationCountOutput
 		PopulationIncidenceDemInput
 		PopulationIncidenceDemOutput
 		PopulationIncidenceInput
@@ -2989,6 +2991,162 @@ func (m *ConcentrationResponseAverageInput) Unmarshal(rawBytes []byte) (*Concent
 	return m, nil
 }
 
+type PopulationCountInput struct {
+	Year       int32
+	Population string
+	AQM        string
+}
+
+// GetYear gets the Year of the PopulationCountInput.
+func (m *PopulationCountInput) GetYear() (x int32) {
+	if m == nil {
+		return x
+	}
+	return m.Year
+}
+
+// GetPopulation gets the Population of the PopulationCountInput.
+func (m *PopulationCountInput) GetPopulation() (x string) {
+	if m == nil {
+		return x
+	}
+	return m.Population
+}
+
+// GetAQM gets the AQM of the PopulationCountInput.
+func (m *PopulationCountInput) GetAQM() (x string) {
+	if m == nil {
+		return x
+	}
+	return m.AQM
+}
+
+// MarshalToWriter marshals PopulationCountInput to the provided writer.
+func (m *PopulationCountInput) MarshalToWriter(writer jspb.Writer) {
+	if m == nil {
+		return
+	}
+
+	if m.Year != 0 {
+		writer.WriteInt32(1, m.Year)
+	}
+
+	if len(m.Population) > 0 {
+		writer.WriteString(2, m.Population)
+	}
+
+	if len(m.AQM) > 0 {
+		writer.WriteString(3, m.AQM)
+	}
+
+	return
+}
+
+// Marshal marshals PopulationCountInput to a slice of bytes.
+func (m *PopulationCountInput) Marshal() []byte {
+	writer := jspb.NewWriter()
+	m.MarshalToWriter(writer)
+	return writer.GetResult()
+}
+
+// UnmarshalFromReader unmarshals a PopulationCountInput from the provided reader.
+func (m *PopulationCountInput) UnmarshalFromReader(reader jspb.Reader) *PopulationCountInput {
+	for reader.Next() {
+		if m == nil {
+			m = &PopulationCountInput{}
+		}
+
+		switch reader.GetFieldNumber() {
+		case 1:
+			m.Year = reader.ReadInt32()
+		case 2:
+			m.Population = reader.ReadString()
+		case 3:
+			m.AQM = reader.ReadString()
+		default:
+			reader.SkipField()
+		}
+	}
+
+	return m
+}
+
+// Unmarshal unmarshals a PopulationCountInput from a slice of bytes.
+func (m *PopulationCountInput) Unmarshal(rawBytes []byte) (*PopulationCountInput, error) {
+	reader := jspb.NewReader(rawBytes)
+
+	m = m.UnmarshalFromReader(reader)
+
+	if err := reader.Err(); err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
+
+type PopulationCountOutput struct {
+	Population []float64
+}
+
+// GetPopulation gets the Population of the PopulationCountOutput.
+func (m *PopulationCountOutput) GetPopulation() (x []float64) {
+	if m == nil {
+		return x
+	}
+	return m.Population
+}
+
+// MarshalToWriter marshals PopulationCountOutput to the provided writer.
+func (m *PopulationCountOutput) MarshalToWriter(writer jspb.Writer) {
+	if m == nil {
+		return
+	}
+
+	if len(m.Population) > 0 {
+		writer.WriteFloat64Slice(1, m.Population)
+	}
+
+	return
+}
+
+// Marshal marshals PopulationCountOutput to a slice of bytes.
+func (m *PopulationCountOutput) Marshal() []byte {
+	writer := jspb.NewWriter()
+	m.MarshalToWriter(writer)
+	return writer.GetResult()
+}
+
+// UnmarshalFromReader unmarshals a PopulationCountOutput from the provided reader.
+func (m *PopulationCountOutput) UnmarshalFromReader(reader jspb.Reader) *PopulationCountOutput {
+	for reader.Next() {
+		if m == nil {
+			m = &PopulationCountOutput{}
+		}
+
+		switch reader.GetFieldNumber() {
+		case 1:
+			m.Population = reader.ReadFloat64Slice()
+		default:
+			reader.SkipField()
+		}
+	}
+
+	return m
+}
+
+// Unmarshal unmarshals a PopulationCountOutput from a slice of bytes.
+func (m *PopulationCountOutput) Unmarshal(rawBytes []byte) (*PopulationCountOutput, error) {
+	reader := jspb.NewReader(rawBytes)
+
+	m = m.UnmarshalFromReader(reader)
+
+	if err := reader.Err(); err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
+
 type PopulationIncidenceDemInput struct {
 	Year       int32
 	Population *Demograph
@@ -3394,6 +3552,7 @@ type EIEIOrpcClient interface {
 	EvaluationHealth(ctx context.Context, in *EvaluationHealthInput, opts ...grpcweb.CallOption) (*Vector, error)
 	EvaluationConcentrations(ctx context.Context, in *EvaluationConcentrationsInput, opts ...grpcweb.CallOption) (*Vector, error)
 	ConcentrationResponseAverage(ctx context.Context, in *ConcentrationResponseAverageInput, opts ...grpcweb.CallOption) (*Vector, error)
+	PopulationCount(ctx context.Context, in *PopulationCountInput, opts ...grpcweb.CallOption) (*PopulationCountOutput, error)
 	PopulationIncidenceDem(ctx context.Context, in *PopulationIncidenceDemInput, opts ...grpcweb.CallOption) (*PopulationIncidenceDemOutput, error)
 	PopulationIncidence(ctx context.Context, in *PopulationIncidenceInput, opts ...grpcweb.CallOption) (*PopulationIncidenceOutput, error)
 	FinalDemand(ctx context.Context, in *FinalDemandInput, opts ...grpcweb.CallOption) (*Vector, error)
@@ -3579,6 +3738,15 @@ func (c *eIEIOrpcClient) ConcentrationResponseAverage(ctx context.Context, in *C
 	}
 
 	return new(Vector).Unmarshal(resp)
+}
+
+func (c *eIEIOrpcClient) PopulationCount(ctx context.Context, in *PopulationCountInput, opts ...grpcweb.CallOption) (*PopulationCountOutput, error) {
+	resp, err := c.client.RPCCall(ctx, "PopulationCount", in.Marshal(), opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return new(PopulationCountOutput).Unmarshal(resp)
 }
 
 func (c *eIEIOrpcClient) PopulationIncidenceDem(ctx context.Context, in *PopulationIncidenceDemInput, opts ...grpcweb.CallOption) (*PopulationIncidenceDemOutput, error) {

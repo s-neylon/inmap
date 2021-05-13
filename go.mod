@@ -50,7 +50,7 @@ require (
 	golang.org/x/tools v0.0.0-20210107193943-4ed967dd8eff // indirect
 	gonum.org/v1/gonum v0.0.0-20191009222026-5d5638e6749a
 	gonum.org/v1/plot v0.0.0-20190526055220-ccfad0c86201
-	google.golang.org/grpc v1.27.0
+	google.golang.org/grpc v1.29.1 // Do not upgrade to 1.30.0 because https://github.com/google/trillian/issues/2195
 	google.golang.org/protobuf v1.25.0
 	honnef.co/go/js/dom v0.0.0-20180323154144-6da835bec70f
 	k8s.io/api v0.19.0
