@@ -175,7 +175,7 @@ func (c *CSTConfig) populationEthnicityCount(ctx context.Context, request *eieio
 // incidence rates. hr specifies the function used to calculate the hazard ratio.
 func (c *CSTConfig) PopulationIncidence(ctx context.Context, request *eieiorpc.PopulationIncidenceInput) (*eieiorpc.PopulationIncidenceOutput, error) {
 	c.loadPopulationOnce.Do(func() {
-		c.popRequestCache = loadCacheOnce(c.popEthnicityWorker, 1, 1, c.SpatialCache,
+		c.popRequestCache = loadCacheOnce(c.popIncidenceWorker, 1, 1, c.SpatialCache,
 			requestcache.MarshalGob, requestcache.UnmarshalGob)
 	})
 	if _, ok := c.censusFile[int(request.Year)]; !ok {
@@ -222,12 +222,7 @@ func (c *CSTConfig) popIncomeWorker(_ context.Context, aqmYearI interface{}) (in
 	return griddedPop, nil
 }
 
-// popEthnicityWorker calculates the population and underlying mortality incidence rate.
-// The population in each cell is calculated as an area-weighted average.
-// The mortality rate in each cell is calculated as a population-weighted average. If
-// multiple mortality rate polygons overlap or lie within a single population
-// polygon, the mortality rate in each cell is equal to the population-weighted
-// average of: the area-weighted average of mortality rates within each population polygon.
+// popEthnicityWorker calculates the population in each cell is calculated as an area-weighted average.
 func (c *CSTConfig) popEthnicityWorker(ctx context.Context, aqmYearHRI interface{}) (interface{}, error) {
 	aqmYearHR := aqmYearHRI.(struct {
 		aqm  string
@@ -243,6 +238,37 @@ func (c *CSTConfig) popEthnicityWorker(ctx context.Context, aqmYearHRI interface
 		return nil, err
 	}
 	return griddedPop, nil
+}
+
+// popIncidenceWorker calculates the population and underlying mortality incidence rate.
+// The population in each cell is calculated as an area-weighted average.
+// The mortality rate in each cell is calculated as a population-weighted average. If
+// multiple mortality rate polygons overlap or lie within a single population
+// polygon, the mortality rate in each cell is equal to the population-weighted
+// average of: the area-weighted average of mortality rates within each population polygon.
+func (c *CSTConfig) popIncidenceWorker(ctx context.Context, aqmYearHRI interface{}) (interface{}, error) {
+	aqmYearHR := aqmYearHRI.(struct {
+		aqm  string
+		year int
+		hr   string
+	})
+	pop, popIndices, mort, mortIndices, err := c.loadPopMort(aqmYearHR.year)
+	if err != nil {
+		return nil, err
+	}
+	griddedPop, err := c.gridPopulation(pop, aqmYearHR.aqm, popIndices)
+	if err != nil {
+		return nil, err
+	}
+	mortIndex, err := c.regionalIncidence(ctx, pop, popIndices, mort, mortIndices, aqmYearHR.aqm, aqmYearHR.year, aqmYearHR.hr)
+	if err != nil {
+		return nil, err
+	}
+	griddedIo, err := c.griddedIncidence(aqmYearHR.aqm, mortIndex, pop, griddedPop, mortIndices, popIndices)
+	if err != nil {
+		return nil, err
+	}
+	return popIncidence{P: griddedPop, Io: griddedIo}, nil
 }
 
 func (c *CSTConfig) gridPopulation(pop *rtree.Rtree, aqm string, popIndices map[string]int) (map[string][]float64, error) {
