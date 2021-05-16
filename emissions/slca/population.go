@@ -95,7 +95,32 @@ func (c *CSTConfig) PopulationIncidenceDem(ctx context.Context, request *eieiorp
 	}, nil
 }
 
-func (c *CSTConfig) PopulationCount(ctx context.Context, request *eieiorpc.PopulationCountInput) (*eieiorpc.PopulationCountOutput, error) {
+
+// Wrapper for PopulationIncidence that takes demographic instead of string
+func (c *CSTConfig) PopulationCountDem(ctx context.Context, request *eieiorpc.PopulationCountDemInput) ([]float64, error) {
+	populationString, err := DemographToCensusPopColumn(request.Population)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.PopulationCount(ctx, &eieiorpc.PopulationCountInput{
+		Year:       request.GetYear(),
+		Population: populationString,
+		HR:         request.GetHR(),
+		AQM:        request.GetAQM(),
+	})
+}
+
+
+func (c *CSTConfig) PopulationCount(ctx context.Context, request *eieiorpc.PopulationCountInput) ([]float64, error) {
+	if request.IsIncomePop {
+		return c.populationIncomeCount(ctx, request)
+	} else {
+		return c.populationEthnicityCount(ctx, request)
+	}
+}
+
+func (c *CSTConfig) populationIncomeCount(ctx context.Context, request *eieiorpc.PopulationCountInput) ([]float64, error) {
 	c.loadPopulationOnce.Do(func() {
 		c.popRequestCache = loadCacheOnce(c.popIncomeWorker, 1, 1, c.SpatialCache,
 			requestcache.MarshalGob, requestcache.UnmarshalGob)
@@ -113,7 +138,34 @@ func (c *CSTConfig) PopulationCount(ctx context.Context, request *eieiorpc.Popul
 	if !ok {
 		return nil, fmt.Errorf("slca: invalid population type %s", request.Population)
 	}
-	return &eieiorpc.PopulationCountOutput{Population: p}, nil
+	return p, nil
+}
+
+
+func (c *CSTConfig) populationEthnicityCount(ctx context.Context, request *eieiorpc.PopulationCountInput) ([]float64, error) {
+	c.loadPopulationOnce.Do(func() {
+		c.popRequestCache = loadCacheOnce(c.popEthnicityWorker, 1, 1, c.SpatialCache,
+			requestcache.MarshalGob, requestcache.UnmarshalGob)
+	})
+	if _, ok := c.censusFile[int(request.Year)]; !ok {
+		result, err := c.interpolatePopulationIncidence(ctx, request.AQM, int(request.Year), request.Population, request.HR)
+		return result.Population, err
+	}
+	r := c.popRequestCache.NewRequest(ctx, struct {
+		aqm  string
+		year int
+		hr   string
+	}{year: int(request.Year), hr: request.HR, aqm: request.AQM}, fmt.Sprintf("populationIncidence_%s_%d_%s", request.AQM, request.Year, request.HR))
+	resultI, err := r.Result()
+	if err != nil {
+		return nil, err
+	}
+	result := resultI.(map[string][]float64)
+	p, ok := result[request.Population]
+	if !ok {
+		return nil, fmt.Errorf("slca: invalid population type %s", request.Population)
+	}
+	return p, nil
 }
 
 // PopulationIncidence returns gridded population counts and underlying
@@ -123,7 +175,7 @@ func (c *CSTConfig) PopulationCount(ctx context.Context, request *eieiorpc.Popul
 // incidence rates. hr specifies the function used to calculate the hazard ratio.
 func (c *CSTConfig) PopulationIncidence(ctx context.Context, request *eieiorpc.PopulationIncidenceInput) (*eieiorpc.PopulationIncidenceOutput, error) {
 	c.loadPopulationOnce.Do(func() {
-		c.popRequestCache = loadCacheOnce(c.popIncidenceWorker, 1, 1, c.SpatialCache,
+		c.popRequestCache = loadCacheOnce(c.popEthnicityWorker, 1, 1, c.SpatialCache,
 			requestcache.MarshalGob, requestcache.UnmarshalGob)
 	})
 	if _, ok := c.censusFile[int(request.Year)]; !ok {
@@ -170,19 +222,19 @@ func (c *CSTConfig) popIncomeWorker(_ context.Context, aqmYearI interface{}) (in
 	return griddedPop, nil
 }
 
-// popIncidenceWorker calculates the population and underlying mortality incidence rate.
+// popEthnicityWorker calculates the population and underlying mortality incidence rate.
 // The population in each cell is calculated as an area-weighted average.
 // The mortality rate in each cell is calculated as a population-weighted average. If
 // multiple mortality rate polygons overlap or lie within a single population
 // polygon, the mortality rate in each cell is equal to the population-weighted
 // average of: the area-weighted average of mortality rates within each population polygon.
-func (c *CSTConfig) popIncidenceWorker(ctx context.Context, aqmYearHRI interface{}) (interface{}, error) {
+func (c *CSTConfig) popEthnicityWorker(ctx context.Context, aqmYearHRI interface{}) (interface{}, error) {
 	aqmYearHR := aqmYearHRI.(struct {
 		aqm  string
 		year int
 		hr   string
 	})
-	pop, popIndices, mort, mortIndices, err := c.loadPopMort(aqmYearHR.year)
+	pop, popIndices, _, _, err := c.loadPopMort(aqmYearHR.year)
 	if err != nil {
 		return nil, err
 	}
@@ -190,15 +242,7 @@ func (c *CSTConfig) popIncidenceWorker(ctx context.Context, aqmYearHRI interface
 	if err != nil {
 		return nil, err
 	}
-	mortIndex, err := c.regionalIncidence(ctx, pop, popIndices, mort, mortIndices, aqmYearHR.aqm, aqmYearHR.year, aqmYearHR.hr)
-	if err != nil {
-		return nil, err
-	}
-	griddedIo, err := c.griddedIncidence(aqmYearHR.aqm, mortIndex, pop, griddedPop, mortIndices, popIndices)
-	if err != nil {
-		return nil, err
-	}
-	return popIncidence{P: griddedPop, Io: griddedIo}, nil
+	return griddedPop, nil
 }
 
 func (c *CSTConfig) gridPopulation(pop *rtree.Rtree, aqm string, popIndices map[string]int) (map[string][]float64, error) {

@@ -48,13 +48,13 @@ func TestPopulationCount(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprint(test.year), func(t *testing.T) {
-			p, err := c.PopulationCount(context.Background(), &eieiorpc.PopulationCountInput{
+			p, err := c.populationIncomeCount(context.Background(), &eieiorpc.PopulationCountInput{
 				Year: test.year, Population: "00-10%", AQM: "inmap"})
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !reflect.DeepEqual(test.pop, p.Population) {
-				t.Errorf("population: %v != %v", p.Population, test.pop)
+			if !reflect.DeepEqual(test.pop, p) {
+				t.Errorf("population: %v != %v", p, test.pop)
 			}
 		})
 	}
