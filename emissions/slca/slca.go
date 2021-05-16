@@ -75,8 +75,13 @@ type CSTConfig struct {
 	// columns in CensusFile.
 	CensusPopColumns []string
 
+	// CensusTotalPopColumn specifies the name of the total population
+	// attribute column in CensusFile
+	CensusTotalPopColumn string
+
 	// CensusIncomeColumns specifies the names of the income category
-	// attribute columns in CensusFile.
+	// attribute columns in CensusFile (starting with the total, and then
+	// in ascending order).
 	CensusIncomeCatColumns []string
 
 	// MortalityRateFile specifies the location of the shapefile holding

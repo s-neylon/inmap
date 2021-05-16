@@ -485,13 +485,27 @@ func (c *CSTConfig) loadPopIncome(year int, sr *proj.SR) (*rtree.Rtree, map[stri
 	catToDecile := incomeCategoryToDeciles(CategoryLowerBounds, DecileLowerBounds)
 
 	pop := rtree.NewTree(25, 50)
+	var totalNumHouseholds float64
+	var totalPopSize float64
 	for {
-		g, fields, more := popshp.DecodeRowFields(c.CensusIncomeCatColumns...)
+		g, fields, more := popshp.DecodeRowFields(append(c.CensusIncomeCatColumns, c.CensusTotalPopColumn)...)
 		if !more {
 			break
 		}
-		p := new(population)
-		p.PopData = make([]float64, len(DecileLowerBounds))
+
+		s, ok := fields[c.CensusTotalPopColumn]
+		if !ok {
+			return nil, nil, fmt.Errorf("inmap: loading income population shapefile: missing attribute column %s", c.CensusTotalPopColumn)
+		}
+		totalPopSize, err = s2f(s)
+		if err != nil {
+			return nil, nil, err
+		}
+		if math.IsNaN(totalPopSize) {
+			return nil, nil, fmt.Errorf("inmap: loadPopIncome: NaN population value")
+		}
+
+		numHouseholdsByDecile := make([]float64, len(DecileLowerBounds))
 		currDecileIdx := 0
 		for i, pop := range c.CensusIncomeCatColumns {
 			s, ok := fields[pop]
@@ -507,16 +521,30 @@ func (c *CSTConfig) loadPopIncome(year int, sr *proj.SR) (*rtree.Rtree, map[stri
 				return nil, nil, fmt.Errorf("inmap: loadPopIncome: NaN population value")
 			}
 
-			// convert categories to deciles
-			for catToDecile[i][currDecileIdx] != 0 {
-				p.PopData[currDecileIdx] += categoryValue * catToDecile[i][currDecileIdx]
-				currDecileIdx += 1
-				if currDecileIdx == 10 {
-					break
+			if i == 0 {
+				totalNumHouseholds = categoryValue
+			} else {
+				decileNum := i-1 // because first is total
+				// convert categories to deciles
+				for catToDecile[decileNum][currDecileIdx] != 0 {
+					numHouseholdsByDecile[currDecileIdx] += categoryValue * catToDecile[decileNum][currDecileIdx]
+					currDecileIdx += 1
+					if currDecileIdx == 10 {
+						break
+					}
 				}
+				currDecileIdx -= 1 // last one was one too far -- move back
 			}
-			currDecileIdx -= 1 // last one was one too far -- move back
 		}
+
+		// convert number of households by decile to estimation of
+		// number of individuals by decile (using household proportion)
+		p := new(population)
+		p.PopData = make([]float64, len(DecileLowerBounds))
+		for decile, numHouseholds := range numHouseholdsByDecile {
+			p.PopData[decile] = totalPopSize * (numHouseholds/totalNumHouseholds)
+		}
+
 		gg, err := g.Transform(trans)
 		if err != nil {
 			return nil, nil, err

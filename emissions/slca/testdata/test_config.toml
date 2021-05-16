@@ -13,7 +13,9 @@ DefaultFIPS = "00000"
 # be included as population estimates in the model. They can be population
 # of different demographics or for different population scenarios.
 CensusPopColumns= ["TotalPop", "WhiteNoLat", "Black", "Native", "Asian", "Latino"]
+CensusTotalPopColumn="TotalPop" # each household has size 1, just for easy testing purposes
 CensusIncomeCatColumns= [ # Use asian as placeholder b/c zero value
+    "TotalPop", # FIRST ONE IS TOTAL # HOUSEHOLDS. TODO -- rename to more helpful label.
     "TotalPop",
     "Asian",
     "Asian",
