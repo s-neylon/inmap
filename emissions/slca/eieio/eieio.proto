@@ -48,7 +48,6 @@ service EIEIOrpc {
   rpc EvaluationHealth(EvaluationHealthInput) returns (Vector) {}
   rpc EvaluationConcentrations(EvaluationConcentrationsInput) returns (Vector) {}
   rpc ConcentrationResponseAverage(ConcentrationResponseAverageInput) returns (Vector) {}
-  rpc PopulationCount(PopulationCountInput) returns (PopulationCountOutput) {}
   rpc PopulationIncidenceDem(PopulationIncidenceDemInput) returns (PopulationIncidenceDemOutput) {}
   rpc PopulationIncidence(PopulationIncidenceInput) returns (PopulationIncidenceOutput) {}
 
