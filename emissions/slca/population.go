@@ -148,8 +148,7 @@ func (c *CSTConfig) populationEthnicityCount(ctx context.Context, request *eieio
 			requestcache.MarshalGob, requestcache.UnmarshalGob)
 	})
 	if _, ok := c.censusFile[int(request.Year)]; !ok {
-		result, err := c.interpolatePopulationIncidence(ctx, request.AQM, int(request.Year), request.Population, request.HR)
-		return result.Population, err
+		return c.interpolatePopulationCount(ctx, request.AQM, int(request.Year), request.Population, request.HR)
 	}
 	r := c.popRequestCache.NewRequest(ctx, struct {
 		aqm  string
@@ -774,6 +773,61 @@ func (c *CSTConfig) loadMortality(year int, sr *proj.SR) ([]*mortality, map[stri
 	}
 	mortshp.Close()
 	return mortRates, mortIndices, nil
+}
+
+// interpolatePopulationCount returns population rates for
+// years without population data, interpolated from years with population data.
+// For years which there exists population data for years both before and after
+// the year of interest, interpolation is used, otherwise results are assumed
+// to be constant from the endpoint year.
+func (c *CSTConfig) interpolatePopulationCount(ctx context.Context, aqm string, year int, popType string, hr string) ([]float64, error) {
+	yearBefore := math.MinInt32
+	yearAfter := math.MaxInt32
+	var beforeOK, afterOK bool
+	for y := range c.censusFile {
+		// Find the closest before and after years with data, if any exist.
+		if y < year {
+			beforeOK = true
+			if y > yearBefore {
+				yearBefore = y
+			}
+		}
+		if y > year {
+			afterOK = true
+			if y < yearAfter {
+				yearAfter = y
+			}
+		}
+	}
+
+	if !beforeOK && !afterOK {
+		return nil, fmt.Errorf("slca: no population data has been specified")
+	} else if beforeOK && !afterOK {
+		res, err := c.PopulationIncidence(ctx, &eieiorpc.PopulationIncidenceInput{
+			Year: int32(yearBefore), Population: popType, HR: hr, AQM: aqm})
+		return res.Population, err
+	} else if afterOK && !beforeOK {
+		res, err := c.PopulationIncidence(ctx, &eieiorpc.PopulationIncidenceInput{
+			Year: int32(yearAfter), Population: popType, HR: hr, AQM: aqm})
+		return res.Population, err
+	}
+
+	popIOBefore, err := c.PopulationIncidence(ctx, &eieiorpc.PopulationIncidenceInput{
+		Year: int32(yearBefore), Population: popType, HR: hr, AQM: aqm})
+	if err != nil {
+		return nil, err
+	}
+	popIOAfter, err := c.PopulationIncidence(ctx, &eieiorpc.PopulationIncidenceInput{
+		Year: int32(yearAfter), Population: popType, HR: hr, AQM: aqm})
+	if err != nil {
+		return nil, err
+	}
+	frac := float64(year-yearBefore) / float64(yearAfter-yearBefore)
+	pop := make([]float64, len(popIOBefore.Population))
+	for i := range pop {
+		pop[i] = popIOBefore.Population[i]*(1-frac) + popIOAfter.Population[i]*frac
+	}
+	return pop, nil
 }
 
 // interpolatePopulationIncidence returns population and baseline incidence rates for

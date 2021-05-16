@@ -19,6 +19,7 @@ func init() {
 	os.Setenv("INMAP_ROOT_DIR", "../../")
 }
 
+// TODO: Test income and ethnicity differently
 func TestPopulationCount(t *testing.T) {
 	f, err := os.Open("testdata/test_config.toml")
 	if err != nil {
