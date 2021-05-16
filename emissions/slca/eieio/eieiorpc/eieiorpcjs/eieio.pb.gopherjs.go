@@ -34,6 +34,7 @@
 		EvaluationConcentrationsInput
 		ConcentrationResponseAverageInput
 		PopulationCountInput
+		PopulationCountDemInput
 		PopulationCountOutput
 		PopulationIncidenceDemInput
 		PopulationIncidenceDemOutput
@@ -2992,9 +2993,11 @@ func (m *ConcentrationResponseAverageInput) Unmarshal(rawBytes []byte) (*Concent
 }
 
 type PopulationCountInput struct {
-	Year       int32
-	Population string
-	AQM        string
+	Year        int32
+	Population  string
+	AQM         string
+	IsIncomePop bool
+	HR          string
 }
 
 // GetYear gets the Year of the PopulationCountInput.
@@ -3021,6 +3024,22 @@ func (m *PopulationCountInput) GetAQM() (x string) {
 	return m.AQM
 }
 
+// GetIsIncomePop gets the IsIncomePop of the PopulationCountInput.
+func (m *PopulationCountInput) GetIsIncomePop() (x bool) {
+	if m == nil {
+		return x
+	}
+	return m.IsIncomePop
+}
+
+// GetHR gets the HR of the PopulationCountInput.
+func (m *PopulationCountInput) GetHR() (x string) {
+	if m == nil {
+		return x
+	}
+	return m.HR
+}
+
 // MarshalToWriter marshals PopulationCountInput to the provided writer.
 func (m *PopulationCountInput) MarshalToWriter(writer jspb.Writer) {
 	if m == nil {
@@ -3037,6 +3056,14 @@ func (m *PopulationCountInput) MarshalToWriter(writer jspb.Writer) {
 
 	if len(m.AQM) > 0 {
 		writer.WriteString(3, m.AQM)
+	}
+
+	if m.IsIncomePop {
+		writer.WriteBool(4, m.IsIncomePop)
+	}
+
+	if len(m.HR) > 0 {
+		writer.WriteString(5, m.HR)
 	}
 
 	return
@@ -3063,6 +3090,10 @@ func (m *PopulationCountInput) UnmarshalFromReader(reader jspb.Reader) *Populati
 			m.Population = reader.ReadString()
 		case 3:
 			m.AQM = reader.ReadString()
+		case 4:
+			m.IsIncomePop = reader.ReadBool()
+		case 5:
+			m.HR = reader.ReadString()
 		default:
 			reader.SkipField()
 		}
@@ -3073,6 +3104,133 @@ func (m *PopulationCountInput) UnmarshalFromReader(reader jspb.Reader) *Populati
 
 // Unmarshal unmarshals a PopulationCountInput from a slice of bytes.
 func (m *PopulationCountInput) Unmarshal(rawBytes []byte) (*PopulationCountInput, error) {
+	reader := jspb.NewReader(rawBytes)
+
+	m = m.UnmarshalFromReader(reader)
+
+	if err := reader.Err(); err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
+
+type PopulationCountDemInput struct {
+	Year        int32
+	Population  *Demograph
+	AQM         string
+	IsIncomePop bool
+	HR          string
+}
+
+// GetYear gets the Year of the PopulationCountDemInput.
+func (m *PopulationCountDemInput) GetYear() (x int32) {
+	if m == nil {
+		return x
+	}
+	return m.Year
+}
+
+// GetPopulation gets the Population of the PopulationCountDemInput.
+func (m *PopulationCountDemInput) GetPopulation() (x *Demograph) {
+	if m == nil {
+		return x
+	}
+	return m.Population
+}
+
+// GetAQM gets the AQM of the PopulationCountDemInput.
+func (m *PopulationCountDemInput) GetAQM() (x string) {
+	if m == nil {
+		return x
+	}
+	return m.AQM
+}
+
+// GetIsIncomePop gets the IsIncomePop of the PopulationCountDemInput.
+func (m *PopulationCountDemInput) GetIsIncomePop() (x bool) {
+	if m == nil {
+		return x
+	}
+	return m.IsIncomePop
+}
+
+// GetHR gets the HR of the PopulationCountDemInput.
+func (m *PopulationCountDemInput) GetHR() (x string) {
+	if m == nil {
+		return x
+	}
+	return m.HR
+}
+
+// MarshalToWriter marshals PopulationCountDemInput to the provided writer.
+func (m *PopulationCountDemInput) MarshalToWriter(writer jspb.Writer) {
+	if m == nil {
+		return
+	}
+
+	if m.Year != 0 {
+		writer.WriteInt32(1, m.Year)
+	}
+
+	if m.Population != nil {
+		writer.WriteMessage(2, func() {
+			m.Population.MarshalToWriter(writer)
+		})
+	}
+
+	if len(m.AQM) > 0 {
+		writer.WriteString(3, m.AQM)
+	}
+
+	if m.IsIncomePop {
+		writer.WriteBool(4, m.IsIncomePop)
+	}
+
+	if len(m.HR) > 0 {
+		writer.WriteString(5, m.HR)
+	}
+
+	return
+}
+
+// Marshal marshals PopulationCountDemInput to a slice of bytes.
+func (m *PopulationCountDemInput) Marshal() []byte {
+	writer := jspb.NewWriter()
+	m.MarshalToWriter(writer)
+	return writer.GetResult()
+}
+
+// UnmarshalFromReader unmarshals a PopulationCountDemInput from the provided reader.
+func (m *PopulationCountDemInput) UnmarshalFromReader(reader jspb.Reader) *PopulationCountDemInput {
+	for reader.Next() {
+		if m == nil {
+			m = &PopulationCountDemInput{}
+		}
+
+		switch reader.GetFieldNumber() {
+		case 1:
+			m.Year = reader.ReadInt32()
+		case 2:
+			reader.ReadMessage(func() {
+				m.Population = m.Population.UnmarshalFromReader(reader)
+			})
+		case 3:
+			m.AQM = reader.ReadString()
+		case 4:
+			m.IsIncomePop = reader.ReadBool()
+		case 5:
+			m.HR = reader.ReadString()
+		default:
+			reader.SkipField()
+		}
+	}
+
+	return m
+}
+
+// Unmarshal unmarshals a PopulationCountDemInput from a slice of bytes.
+func (m *PopulationCountDemInput) Unmarshal(rawBytes []byte) (*PopulationCountDemInput, error) {
 	reader := jspb.NewReader(rawBytes)
 
 	m = m.UnmarshalFromReader(reader)
