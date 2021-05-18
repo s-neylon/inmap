@@ -803,29 +803,27 @@ func (c *CSTConfig) interpolatePopulationCount(ctx context.Context, aqm string, 
 	if !beforeOK && !afterOK {
 		return nil, fmt.Errorf("slca: no population data has been specified")
 	} else if beforeOK && !afterOK {
-		res, err := c.PopulationIncidence(ctx, &eieiorpc.PopulationIncidenceInput{
+		return c.PopulationCount(ctx, &eieiorpc.PopulationCountInput{
 			Year: int32(yearBefore), Population: popType, HR: hr, AQM: aqm})
-		return res.Population, err
 	} else if afterOK && !beforeOK {
-		res, err := c.PopulationIncidence(ctx, &eieiorpc.PopulationIncidenceInput{
+		return c.PopulationCount(ctx, &eieiorpc.PopulationCountInput{
 			Year: int32(yearAfter), Population: popType, HR: hr, AQM: aqm})
-		return res.Population, err
 	}
 
-	popIOBefore, err := c.PopulationIncidence(ctx, &eieiorpc.PopulationIncidenceInput{
+	popIOBefore, err := c.PopulationCount(ctx, &eieiorpc.PopulationCountInput{
 		Year: int32(yearBefore), Population: popType, HR: hr, AQM: aqm})
 	if err != nil {
 		return nil, err
 	}
-	popIOAfter, err := c.PopulationIncidence(ctx, &eieiorpc.PopulationIncidenceInput{
+	popIOAfter, err := c.PopulationCount(ctx, &eieiorpc.PopulationCountInput{
 		Year: int32(yearAfter), Population: popType, HR: hr, AQM: aqm})
 	if err != nil {
 		return nil, err
 	}
 	frac := float64(year-yearBefore) / float64(yearAfter-yearBefore)
-	pop := make([]float64, len(popIOBefore.Population))
+	pop := make([]float64, len(popIOBefore))
 	for i := range pop {
-		pop[i] = popIOBefore.Population[i]*(1-frac) + popIOAfter.Population[i]*frac
+		pop[i] = popIOBefore[i]*(1-frac) + popIOAfter[i]*frac
 	}
 	return pop, nil
 }
