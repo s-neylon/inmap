@@ -317,7 +317,6 @@ message PopulationCountInput {
   string Population = 2;
   string AQM = 3;
   bool isIncomePop = 4;
-  string HR = 5;
 }
 
 message PopulationCountDemInput {
@@ -325,7 +324,6 @@ message PopulationCountDemInput {
   Demograph Population = 2;
   string AQM = 3;
   bool isIncomePop = 4;
-  string HR = 5;
 }
 
 message PopulationIncidenceDemInput {

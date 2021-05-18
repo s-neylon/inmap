@@ -20,7 +20,6 @@ package slca
 import (
 	"context"
 	"encoding/gob"
-	"errors"
 	"fmt"
 	"math"
 	"runtime"
@@ -53,7 +52,8 @@ func DemographToCensusPopColumn(dem *eieiorpc.Demograph) (string, error) {
 
 	var ethnicity eieiorpc.Ethnicity
 	// var decile eieiorpc.Decile
-	isEthnicity, isDecile := false, false
+	isEthnicity := false
+	// isEthnicity, isDecile := false, false
 	switch typedDem := dem.Demographic.(type) {
 	case *eieiorpc.Demograph_Ethnicity:
 		ethnicity, isEthnicity = typedDem.Ethnicity, true
@@ -64,11 +64,11 @@ func DemographToCensusPopColumn(dem *eieiorpc.Demograph) (string, error) {
 	var populationString string
 	if isEthnicity {
 		populationString = ethnicityToCensusPopColumn[ethnicity]
-	} else if isDecile {
+	/*} else if isDecile {
 		return "", errors.New("support not yet offered for deciles")
 	} else {
 		return "", errors.New("support only offered for ethnicity and decile demographs")
-	}
+	*/}
 	return populationString, nil
 }
 
@@ -106,7 +106,6 @@ func (c *CSTConfig) PopulationCountDem(ctx context.Context, request *eieiorpc.Po
 	return c.PopulationCount(ctx, &eieiorpc.PopulationCountInput{
 		Year:       request.GetYear(),
 		Population: populationString,
-		HR:         request.GetHR(),
 		AQM:        request.GetAQM(),
 	})
 }
@@ -148,13 +147,12 @@ func (c *CSTConfig) populationEthnicityCount(ctx context.Context, request *eieio
 			requestcache.MarshalGob, requestcache.UnmarshalGob)
 	})
 	if _, ok := c.censusFile[int(request.Year)]; !ok {
-		return c.interpolatePopulationCount(ctx, request.AQM, int(request.Year), request.Population, request.HR)
+		return c.interpolatePopulationCount(ctx, request.AQM, int(request.Year), request.Population)
 	}
 	r := c.popRequestCache.NewRequest(ctx, struct {
 		aqm  string
 		year int
-		hr   string
-	}{year: int(request.Year), hr: request.HR, aqm: request.AQM}, fmt.Sprintf("populationIncidence_%s_%d_%s", request.AQM, request.Year, request.HR))
+	}{year: int(request.Year), aqm: request.AQM}, fmt.Sprintf("populationIncidence_%s_%d_%s", request.AQM, request.Year))
 	resultI, err := r.Result()
 	if err != nil {
 		return nil, err
@@ -222,7 +220,7 @@ func (c *CSTConfig) popIncomeWorker(_ context.Context, aqmYearI interface{}) (in
 }
 
 // popEthnicityWorker calculates the population in each cell is calculated as an area-weighted average.
-func (c *CSTConfig) popEthnicityWorker(ctx context.Context, aqmYearI interface{}) (interface{}, error) {
+func (c *CSTConfig) popEthnicityWorker(_ context.Context, aqmYearI interface{}) (interface{}, error) {
 	aqmYear := aqmYearI.(struct {
 		aqm  string
 		year int
@@ -779,7 +777,7 @@ func (c *CSTConfig) loadMortality(year int, sr *proj.SR) ([]*mortality, map[stri
 // For years which there exists population data for years both before and after
 // the year of interest, interpolation is used, otherwise results are assumed
 // to be constant from the endpoint year.
-func (c *CSTConfig) interpolatePopulationCount(ctx context.Context, aqm string, year int, popType string, hr string) ([]float64, error) {
+func (c *CSTConfig) interpolatePopulationCount(ctx context.Context, aqm string, year int, popType string) ([]float64, error) {
 	yearBefore := math.MinInt32
 	yearAfter := math.MaxInt32
 	var beforeOK, afterOK bool
@@ -803,19 +801,19 @@ func (c *CSTConfig) interpolatePopulationCount(ctx context.Context, aqm string, 
 		return nil, fmt.Errorf("slca: no population data has been specified")
 	} else if beforeOK && !afterOK {
 		return c.PopulationCount(ctx, &eieiorpc.PopulationCountInput{
-			Year: int32(yearBefore), Population: popType, HR: hr, AQM: aqm})
+			Year: int32(yearBefore), Population: popType, AQM: aqm})
 	} else if afterOK && !beforeOK {
 		return c.PopulationCount(ctx, &eieiorpc.PopulationCountInput{
-			Year: int32(yearAfter), Population: popType, HR: hr, AQM: aqm})
+			Year: int32(yearAfter), Population: popType, AQM: aqm})
 	}
 
 	popIOBefore, err := c.PopulationCount(ctx, &eieiorpc.PopulationCountInput{
-		Year: int32(yearBefore), Population: popType, HR: hr, AQM: aqm})
+		Year: int32(yearBefore), Population: popType, AQM: aqm})
 	if err != nil {
 		return nil, err
 	}
 	popIOAfter, err := c.PopulationCount(ctx, &eieiorpc.PopulationCountInput{
-		Year: int32(yearAfter), Population: popType, HR: hr, AQM: aqm})
+		Year: int32(yearAfter), Population: popType, AQM: aqm})
 	if err != nil {
 		return nil, err
 	}

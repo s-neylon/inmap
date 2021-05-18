@@ -2996,7 +2996,6 @@ type PopulationCountInput struct {
 	Population  string
 	AQM         string
 	IsIncomePop bool
-	HR          string
 }
 
 // GetYear gets the Year of the PopulationCountInput.
@@ -3031,14 +3030,6 @@ func (m *PopulationCountInput) GetIsIncomePop() (x bool) {
 	return m.IsIncomePop
 }
 
-// GetHR gets the HR of the PopulationCountInput.
-func (m *PopulationCountInput) GetHR() (x string) {
-	if m == nil {
-		return x
-	}
-	return m.HR
-}
-
 // MarshalToWriter marshals PopulationCountInput to the provided writer.
 func (m *PopulationCountInput) MarshalToWriter(writer jspb.Writer) {
 	if m == nil {
@@ -3059,10 +3050,6 @@ func (m *PopulationCountInput) MarshalToWriter(writer jspb.Writer) {
 
 	if m.IsIncomePop {
 		writer.WriteBool(4, m.IsIncomePop)
-	}
-
-	if len(m.HR) > 0 {
-		writer.WriteString(5, m.HR)
 	}
 
 	return
@@ -3091,8 +3078,6 @@ func (m *PopulationCountInput) UnmarshalFromReader(reader jspb.Reader) *Populati
 			m.AQM = reader.ReadString()
 		case 4:
 			m.IsIncomePop = reader.ReadBool()
-		case 5:
-			m.HR = reader.ReadString()
 		default:
 			reader.SkipField()
 		}
@@ -3119,7 +3104,6 @@ type PopulationCountDemInput struct {
 	Population  *Demograph
 	AQM         string
 	IsIncomePop bool
-	HR          string
 }
 
 // GetYear gets the Year of the PopulationCountDemInput.
@@ -3154,14 +3138,6 @@ func (m *PopulationCountDemInput) GetIsIncomePop() (x bool) {
 	return m.IsIncomePop
 }
 
-// GetHR gets the HR of the PopulationCountDemInput.
-func (m *PopulationCountDemInput) GetHR() (x string) {
-	if m == nil {
-		return x
-	}
-	return m.HR
-}
-
 // MarshalToWriter marshals PopulationCountDemInput to the provided writer.
 func (m *PopulationCountDemInput) MarshalToWriter(writer jspb.Writer) {
 	if m == nil {
@@ -3184,10 +3160,6 @@ func (m *PopulationCountDemInput) MarshalToWriter(writer jspb.Writer) {
 
 	if m.IsIncomePop {
 		writer.WriteBool(4, m.IsIncomePop)
-	}
-
-	if len(m.HR) > 0 {
-		writer.WriteString(5, m.HR)
 	}
 
 	return
@@ -3218,8 +3190,6 @@ func (m *PopulationCountDemInput) UnmarshalFromReader(reader jspb.Reader) *Popul
 			m.AQM = reader.ReadString()
 		case 4:
 			m.IsIncomePop = reader.ReadBool()
-		case 5:
-			m.HR = reader.ReadString()
 		default:
 			reader.SkipField()
 		}
