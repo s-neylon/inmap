@@ -222,17 +222,16 @@ func (c *CSTConfig) popIncomeWorker(_ context.Context, aqmYearI interface{}) (in
 }
 
 // popEthnicityWorker calculates the population in each cell is calculated as an area-weighted average.
-func (c *CSTConfig) popEthnicityWorker(ctx context.Context, aqmYearHRI interface{}) (interface{}, error) {
-	aqmYearHR := aqmYearHRI.(struct {
+func (c *CSTConfig) popEthnicityWorker(ctx context.Context, aqmYearI interface{}) (interface{}, error) {
+	aqmYear := aqmYearI.(struct {
 		aqm  string
 		year int
-		hr   string
 	})
-	pop, popIndices, _, _, err := c.loadPopMort(aqmYearHR.year)
+	pop, popIndices, _, _, err := c.loadPopMort(aqmYear.year)
 	if err != nil {
 		return nil, err
 	}
-	griddedPop, err := c.gridPopulation(pop, aqmYearHR.aqm, popIndices)
+	griddedPop, err := c.gridPopulation(pop, aqmYear.aqm, popIndices)
 	if err != nil {
 		return nil, err
 	}
