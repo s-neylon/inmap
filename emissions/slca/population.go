@@ -543,9 +543,8 @@ func (c *CSTConfig) loadPopIncome(year int, sr *proj.SR) (*rtree.Rtree, map[stri
 
 	// Create a list of array indices for each decile
 	decileIndices := make(map[string]int)
-	for i := 0; i < 10; i++ {
-		decile := i*10
-		decileIndices[fmt.Sprintf("%02d-%02d%%", decile, decile + 10)] = i
+	for i, decilePopName := range c.CensusIncomeDecileNames {
+		decileIndices[decilePopName] = i
 	}
 
 	CategoryLowerBounds := []int{0, 10000, 15000, 20000, 25000, 30000, 35000, 40000,

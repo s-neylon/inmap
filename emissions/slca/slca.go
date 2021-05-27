@@ -84,6 +84,10 @@ type CSTConfig struct {
 	// in ascending order).
 	CensusIncomeCatColumns []string
 
+	// CensusncomeDecileNames specifies the names of the income decile
+	// population names to be produced. Length must be exactly 10
+	CensusIncomeDecileNames []string
+
 	// MortalityRateFile specifies the location of the shapefile holding
 	// baseline mortality rate information for each analysis year.
 	MortalityRateFile map[string]string
