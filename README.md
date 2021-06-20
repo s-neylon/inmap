@@ -1,4 +1,8 @@
-# (In)tervention (M)odel for (A)ir (P)ollution
+# (In)tervention (M)odel for (A)ir (P)ollution [Fork-ed note]
+
+This repository is a fork of ctessum/inmap that adds capabilities necessary for doing calculations similar to those provided by the original, but for income deciles in addition to ethnicity. The changes are not necessarily piped through the functionality of the entire repository -- instead, only what is needed for use with evookelj/inmap_sandbox.
+
+# (In)tervention (M)odel for (A)ir (P)ollution [Original Documentation]
 
 [![Build Status](https://travis-ci.com/spatialmodel/inmap.svg?branch=master)](https://travis-ci.com/spatialmodel/inmap) [![Coverage Status](https://coveralls.io/repos/github/spatialmodel/inmap/badge.svg?branch=master)](https://coveralls.io/github/spatialmodel/inmap?branch=master) [![GoDoc](http://godoc.org/github.com/evookelj/inmap?status.svg)](http://godoc.org/github.com/evookelj/inmap) [![Go Report Card](https://goreportcard.com/badge/github.com/evookelj/inmap)](https://goreportcard.com/report/github.com/evookelj/inmap)
 
