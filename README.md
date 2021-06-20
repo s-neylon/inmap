@@ -1,6 +1,6 @@
 # (In)tervention (M)odel for (A)ir (P)ollution [Fork-ed note]
 
-This repository is a fork of ctessum/inmap that adds capabilities necessary for doing calculations similar to those provided by the original, but for income deciles in addition to ethnicity. The changes are not necessarily piped through the functionality of the entire repository -- instead, only what is needed for use with evookelj/inmap_sandbox.
+This repository is a fork of INMAP that adds capabilities necessary for doing calculations similar to those provided by the original, but for income deciles in addition to ethnicity. The changes are not necessarily piped through the functionality of the entire repository -- instead, only what is needed for use with evookelj/inmap_sandbox.
 
 # (In)tervention (M)odel for (A)ir (P)ollution [Original Documentation]
 
